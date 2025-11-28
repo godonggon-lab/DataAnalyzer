@@ -1,8 +1,9 @@
 import Papa from 'papaparse';
 
 // 타입 정의
+// 타입 정의
 interface WorkerMessage {
-    type: 'progress' | 'complete' | 'error';
+    type: 'init' | 'chunk' | 'progress' | 'complete' | 'error';
     progress?: number;
     data?: {
         headers: string[];
@@ -15,6 +16,7 @@ interface WorkerMessage {
         sampleValues?: any[];
     }>;
     error?: string;
+    chunkData?: any[][];
 }
 
 // WebWorker 컨텍스트에서 실행
@@ -25,7 +27,6 @@ self.onmessage = async (event: MessageEvent) => {
         console.log('[CSV Worker] Starting to parse file:', file.name);
 
         // CSV 파싱
-        const rows: any[][] = [];
         let headers: string[] = [];
         let isFirstChunk = true;
         let processedBytes = 0;
@@ -38,52 +39,54 @@ self.onmessage = async (event: MessageEvent) => {
             chunk: (results, parser) => {
                 try {
                     const data = results.data as any[][];
+                    let chunkData: any[][] = [];
 
                     if (isFirstChunk && data.length > 0) {
                         headers = data[0].map((h: any) => String(h || '').trim());
                         const firstChunkRows = data.slice(1);
-                        for (let i = 0; i < firstChunkRows.length; i++) {
-                            rows.push(firstChunkRows[i]);
-                        }
+                        chunkData = firstChunkRows;
+
+                        // 컬럼 정보 생성 및 init 메시지 전송
+                        const columns = headers.map((name) => ({
+                            name,
+                            type: 'string', // 초기에는 string으로 설정, 추후 개선 가능
+                            sampleValues: [],
+                        }));
+
+                        const initMessage: WorkerMessage = {
+                            type: 'init',
+                            columns,
+                            progress: 0,
+                        };
+                        self.postMessage(initMessage);
+
                         isFirstChunk = false;
                     } else {
-                        for (let i = 0; i < data.length; i++) {
-                            rows.push(data[i]);
-                        }
+                        chunkData = data;
+                    }
+
+                    if (chunkData.length > 0) {
+                        const chunkMessage: WorkerMessage = {
+                            type: 'chunk',
+                            chunkData,
+                            progress: Math.min(99, (processedBytes / totalBytes) * 100),
+                        };
+                        self.postMessage(chunkMessage);
                     }
 
                     processedBytes += JSON.stringify(data).length;
-                    const progress = Math.min(95, (processedBytes / totalBytes) * 100);
 
-                    const progressMessage: WorkerMessage = {
-                        type: 'progress',
-                        progress,
-                    };
-                    self.postMessage(progressMessage);
                 } catch (error) {
                     parser.abort();
                     throw error;
                 }
             },
             complete: () => {
-                console.log('[CSV Worker] Parse complete, rows:', rows.length);
-
-                // 컬럼 타입 추론 (간단 버전)
-                const columns = headers.map((name) => ({
-                    name,
-                    type: 'string', // 일단 모두 string으로
-                    sampleValues: [],
-                }));
+                console.log('[CSV Worker] Parse complete');
 
                 const completeMessage: WorkerMessage = {
                     type: 'complete',
                     progress: 100,
-                    data: {
-                        headers,
-                        rows,
-                        rowCount: rows.length,
-                    },
-                    columns,
                 };
 
                 self.postMessage(completeMessage);

@@ -6,9 +6,6 @@ import { useDataStore } from './store/dataStore';
 
 function App() {
     const { rawData, reset, isLoading } = useDataStore();
-
-    console.log('[App] Render - rawData length:', rawData.length);
-
     const hasData = rawData.length > 0;
 
     return (
@@ -50,11 +47,6 @@ function App() {
 
             {/* 메인 컨텐츠 */}
             <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 relative z-10">
-                {/* 디버그 정보 */}
-                <div className="fixed bottom-4 right-4 bg-black/80 text-white p-2 rounded text-xs z-50">
-                    Debug: Data Length = {rawData.length}, IsLoading = {isLoading ? 'true' : 'false'}
-                </div>
-
                 {isLoading && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                         <div className="text-center">

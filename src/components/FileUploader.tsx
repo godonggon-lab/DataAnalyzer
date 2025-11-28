@@ -39,9 +39,30 @@ const FileUploader = () => {
             // Worker 메시지 리스너
             worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
                 const message = event.data;
-                console.log('[FileUploader] Worker message:', message);
 
                 switch (message.type) {
+                    case 'init':
+                        if (message.columns) {
+                            const fileInfo = {
+                                name: file.name,
+                                size: file.size,
+                                type: file.type,
+                            };
+                            // 초기화 및 로딩 시작
+                            useDataStore.getState().initData(message.columns, fileInfo);
+                        }
+                        break;
+
+                    case 'chunk':
+                        if (message.chunkData) {
+                            // 청크 데이터 추가
+                            useDataStore.getState().appendData(message.chunkData);
+                            if (message.progress) {
+                                setProgress(message.progress);
+                            }
+                        }
+                        break;
+
                     case 'progress':
                         if (message.progress !== undefined) {
                             setProgress(message.progress);
@@ -49,28 +70,12 @@ const FileUploader = () => {
                         break;
 
                     case 'complete':
-                        console.log('[FileUploader] Complete message received. Rows:', message.data?.rows?.length);
-
-                        if (!message.data || !message.columns) {
-                            setError('데이터 또는 컬럼 정보가 없습니다.');
-                            setLoading(false);
-                            worker.terminate();
-                            return;
-                        }
-
-                        const fileInfo = {
-                            name: file.name,
-                            size: file.size,
-                            type: file.type,
-                        };
-
-                        console.log('[FileUploader] Calling setData...');
-                        setData(message.data.rows, message.columns, fileInfo);
+                        // 완료 처리
+                        useDataStore.getState().finalizeData();
                         worker.terminate();
                         break;
 
                     case 'error':
-                        console.error('[FileUploader] Worker error:', message.error);
                         setError(message.error || '파일 처리 중 오류가 발생했습니다.');
                         setLoading(false);
                         worker.terminate();
@@ -79,7 +84,6 @@ const FileUploader = () => {
             };
 
             worker.onerror = (event) => {
-                console.error('[FileUploader] Worker onerror:', event);
                 const errorMsg = event.message || 'Worker 실행 중 알 수 없는 오류가 발생했습니다.';
                 setError('Worker 오류: ' + errorMsg);
                 setLoading(false);
@@ -87,11 +91,9 @@ const FileUploader = () => {
             };
 
             // Worker에 파일 전송
-            console.log('[FileUploader] Sending file to worker:', file.name, file.size);
             worker.postMessage(file);
 
         } catch (error) {
-            console.error('[FileUploader] Catch error:', error);
             setError(error instanceof Error ? error.message : '파일 처리 중 오류가 발생했습니다.');
             setLoading(false);
         }

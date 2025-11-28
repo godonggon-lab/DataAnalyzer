@@ -29,11 +29,14 @@ export interface ParsedData {
 
 // WebWorker 메시지 타입
 export interface WorkerMessage {
-    type: 'progress' | 'complete' | 'error';
+    type: 'init' | 'chunk' | 'progress' | 'complete' | 'error';
     progress?: number;
     data?: ParsedData;
     columns?: ColumnInfo[];
     error?: string;
+    // For chunk updates
+    chunkData?: any[][];
+    isFirstChunk?: boolean;
 }
 
 // 차트 데이터 포인트

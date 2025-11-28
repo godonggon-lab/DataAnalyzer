@@ -19,6 +19,9 @@ interface DataState {
 
     // 액션
     setData: (data: any[][], columns: ColumnInfo[], fileInfo: FileInfo) => void;
+    initData: (columns: ColumnInfo[], fileInfo: FileInfo) => void;
+    appendData: (chunk: any[][]) => void;
+    finalizeData: () => void;
     setSelectedXColumn: (column: string | null) => void;
     setSelectedYColumn: (column: string | null) => void;
     setChartType: (type: ChartType) => void;
@@ -41,18 +44,32 @@ export const useDataStore = create<DataState>((set) => ({
     error: null,
 
     // 액션 구현
-    setData: (data, columns, fileInfo) => {
-        console.log('[Store] setData called. Rows:', data.length, 'Columns:', columns.length);
-        set({
-            rawData: data,
-            columns,
-            fileInfo,
-            isLoading: false,
-            progress: 100,
-            error: null,
-        });
-        console.log('[Store] State updated.');
-    },
+    setData: (data, columns, fileInfo) => set({
+        rawData: data,
+        columns,
+        fileInfo,
+        isLoading: false,
+        progress: 100,
+        error: null,
+    }),
+
+    initData: (columns, fileInfo) => set({
+        rawData: [],
+        columns,
+        fileInfo,
+        isLoading: true,
+        progress: 0,
+        error: null,
+    }),
+
+    appendData: (chunk) => set((state) => ({
+        rawData: [...state.rawData, ...chunk],
+    })),
+
+    finalizeData: () => set({
+        isLoading: false,
+        progress: 100,
+    }),
 
     setSelectedXColumn: (column) => set({ selectedXColumn: column }),
 

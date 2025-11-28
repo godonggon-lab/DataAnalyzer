@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Data Visualizer
 
 대용량 CSV/Excel 파일을 브라우저에서 직접 처리하고 시각화하는 고성능 웹 애플리케이션입니다.
@@ -164,3 +165,8 @@ MIT License
 ## 👨‍💻 개발자
 
 Built with ❤️ using modern web technologies
+=======
+**Trying to build a web app which can Analyze Data **
+
+Supporting data will be csv, xml in demo
+>>>>>>> 02dba87e1a2b713079d1e442a3b9a1a44a2cef8e

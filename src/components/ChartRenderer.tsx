@@ -15,6 +15,8 @@ const ChartRenderer: React.FC = () => {
         chartType,
     } = useDataStore();
 
+    const [zoomRange, setZoomRange] = React.useState<{ start: number; end: number } | null>(null);
+
     // 차트 데이터 준비
     const chartData = useMemo(() => {
         if (!selectedXColumn || !selectedYColumn || rawData.length === 0) {
@@ -31,25 +33,58 @@ const ChartRenderer: React.FC = () => {
         // 데이터 포인트 생성
         const dataPoints: ChartDataPoint[] = [];
 
+        // X축 컬럼 타입 확인
+        const xColumn = columns.find(c => c.name === selectedXColumn);
+        const isXAxisTime = xColumn?.type === 'datetime';
+
+        // 전체 데이터를 순회하며 포인트 추출
         for (const row of rawData) {
-            const xValue = toNumber(row[xIndex]);
+            let xValue: number;
+
+            if (isXAxisTime) {
+                const val = row[xIndex];
+                xValue = new Date(val).getTime();
+            } else {
+                xValue = toNumber(row[xIndex]);
+            }
+
             const yValue = toNumber(row[yIndex]);
 
-            // 유효한 숫자인 경우만 포함
+            // 유효한 숫자인 경우만 포함 (날짜는 timestamp로 변환됨)
             if (!isNaN(xValue) && !isNaN(yValue) && isFinite(xValue) && isFinite(yValue)) {
                 dataPoints.push({ x: xValue, y: yValue });
             }
         }
 
-        // 다운샘플링 적용
-        const sampledData = downsampleData(dataPoints, 10000);
+        // 줌 범위에 따른 데이터 필터링
+        let targetData = dataPoints;
+        if (zoomRange) {
+            const startIndex = Math.floor(dataPoints.length * (zoomRange.start / 100));
+            const endIndex = Math.ceil(dataPoints.length * (zoomRange.end / 100));
+            targetData = dataPoints.slice(startIndex, endIndex);
+        }
+
+        // 다운샘플링 적용 (줌 상태일 때도 3000개 유지하여 디테일 확보)
+        const sampledData = downsampleData(targetData, 3000);
 
         return {
             original: dataPoints.length,
             sampled: sampledData.length,
             data: sampledData,
+            isZoomed: !!zoomRange,
+            isXAxisTime,
         };
-    }, [rawData, columns, selectedXColumn, selectedYColumn]);
+    }, [rawData, columns, selectedXColumn, selectedYColumn, zoomRange]);
+
+    // ECharts 이벤트 핸들러
+    const onEvents = useMemo(() => ({
+        'dataZoom': (params: any) => {
+            // dataZoom 이벤트에서 start/end 퍼센트 가져오기
+            const start = params.start ?? params.batch?.[0]?.start ?? 0;
+            const end = params.end ?? params.batch?.[0]?.end ?? 100;
+            setZoomRange({ start, end });
+        }
+    }), []);
 
     // ECharts 옵션 생성
     const chartOption = useMemo(() => {
@@ -64,7 +99,7 @@ const ChartRenderer: React.FC = () => {
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '3%',
+                bottom: '15%', // 라벨 회전을 위해 하단 여백 확보
                 top: '10%',
                 containLabel: true,
             },
@@ -82,6 +117,16 @@ const ChartRenderer: React.FC = () => {
                         color: '#64748b',
                     },
                 },
+                // 날짜 포맷팅
+                formatter: chartData.isXAxisTime ? (params: any) => {
+                    const date = new Date(params[0].value[0]);
+                    const dateStr = date.toLocaleString();
+                    let result = `${dateStr}<br/>`;
+                    params.forEach((param: any) => {
+                        result += `${param.marker}${param.seriesName}: ${param.value[1]}<br/>`;
+                    });
+                    return result;
+                } : undefined,
             },
             toolbox: {
                 feature: {
@@ -104,10 +149,10 @@ const ChartRenderer: React.FC = () => {
                 },
             },
             xAxis: {
-                type: 'value',
+                type: chartData.isXAxisTime ? 'time' : 'value',
                 name: selectedXColumn,
                 nameLocation: 'middle',
-                nameGap: 30,
+                nameGap: 40,
                 nameTextStyle: {
                     color: '#cbd5e1',
                     fontSize: 14,
@@ -120,6 +165,14 @@ const ChartRenderer: React.FC = () => {
                 },
                 axisLabel: {
                     color: '#94a3b8',
+                    rotate: 45, // 라벨 회전
+                    hideOverlap: true, // 겹침 방지
+                    formatter: chartData.isXAxisTime ? undefined : (value: number) => {
+                        // 숫자가 너무 길면 줄임
+                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                        if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+                        return value;
+                    }
                 },
                 splitLine: {
                     lineStyle: {
@@ -127,6 +180,8 @@ const ChartRenderer: React.FC = () => {
                         type: 'dashed',
                     },
                 },
+                min: 'dataMin', // 축 범위 자동 조정
+                max: 'dataMax',
             },
             yAxis: {
                 type: 'value',
@@ -152,19 +207,42 @@ const ChartRenderer: React.FC = () => {
                         type: 'dashed',
                     },
                 },
+                min: 'dataMin',
+                max: 'dataMax',
             },
             dataZoom: [
                 {
                     type: 'inside',
                     xAxisIndex: 0,
-                    filterMode: 'filter',
+                    filterMode: 'empty', // 데이터 필터링 모드 변경 (중요: filterMode를 empty나 none으로 해야 원본 데이터 보존됨)
+                },
+                {
+                    type: 'slider', // 하단 슬라이더 추가
+                    xAxisIndex: 0,
+                    filterMode: 'empty',
+                    height: 20,
+                    bottom: 10,
+                    handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+                    handleSize: '80%',
+                    handleStyle: {
+                        color: '#fff',
+                        shadowBlur: 3,
+                        shadowColor: 'rgba(0, 0, 0, 0.6)',
+                        shadowOffsetX: 2,
+                        shadowOffsetY: 2
+                    },
+                    textStyle: {
+                        color: '#cbd5e1'
+                    },
+                    borderColor: '#475569'
                 },
                 {
                     type: 'inside',
                     yAxisIndex: 0,
-                    filterMode: 'filter',
+                    filterMode: 'empty',
                 },
             ],
+            animation: false, // 대용량 데이터 렌더링 시 애니메이션 끄기 권장
         };
 
         // 차트 타입별 시리즈 설정
@@ -180,14 +258,8 @@ const ChartRenderer: React.FC = () => {
                         color: '#38bdf8',
                         opacity: 0.7,
                     },
-                    emphasis: {
-                        itemStyle: {
-                            color: '#0ea5e9',
-                            opacity: 1,
-                            borderColor: '#fff',
-                            borderWidth: 2,
-                        },
-                    },
+                    large: true, // 대용량 최적화
+                    largeThreshold: 2000,
                 };
                 break;
 
@@ -203,21 +275,8 @@ const ChartRenderer: React.FC = () => {
                     itemStyle: {
                         color: '#38bdf8',
                     },
-                    areaStyle: {
-                        color: {
-                            type: 'linear',
-                            x: 0,
-                            y: 0,
-                            x2: 0,
-                            y2: 1,
-                            colorStops: [
-                                { offset: 0, color: 'rgba(56, 189, 248, 0.3)' },
-                                { offset: 1, color: 'rgba(56, 189, 248, 0.05)' },
-                            ],
-                        },
-                    },
-                    symbol: 'circle',
-                    symbolSize: 4,
+                    symbol: 'none', // 라인 차트에서 심볼 제거 (성능)
+                    sampling: 'lttb', // ECharts 내부 샘플링도 활용
                 };
                 break;
 
@@ -226,34 +285,10 @@ const ChartRenderer: React.FC = () => {
                     type: 'bar',
                     data: seriesData,
                     itemStyle: {
-                        color: {
-                            type: 'linear',
-                            x: 0,
-                            y: 0,
-                            x2: 0,
-                            y2: 1,
-                            colorStops: [
-                                { offset: 0, color: '#38bdf8' },
-                                { offset: 1, color: '#0284c7' },
-                            ],
-                        },
+                        color: '#38bdf8',
                         borderRadius: [4, 4, 0, 0],
                     },
-                    emphasis: {
-                        itemStyle: {
-                            color: {
-                                type: 'linear',
-                                x: 0,
-                                y: 0,
-                                x2: 0,
-                                y2: 1,
-                                colorStops: [
-                                    { offset: 0, color: '#0ea5e9' },
-                                    { offset: 1, color: '#0369a1' },
-                                ],
-                            },
-                        },
-                    },
+                    large: true,
                 };
                 break;
 
@@ -354,6 +389,7 @@ const ChartRenderer: React.FC = () => {
                             option={chartOption}
                             style={{ height: '100%', width: '100%' }}
                             opts={{ renderer: 'canvas' }}
+                            onEvents={onEvents}
                         />
                     )}
                 </div>

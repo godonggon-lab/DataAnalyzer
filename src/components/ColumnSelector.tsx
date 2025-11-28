@@ -17,7 +17,7 @@ const ColumnSelector: React.FC = () => {
     const xColumn = columns.find(c => c.name === selectedXColumn);
     const yColumn = columns.find(c => c.name === selectedYColumn);
 
-    const xColumnValid = xColumn ? isNumericColumn(xColumn) : false;
+    const xColumnValid = xColumn ? (isNumericColumn(xColumn) || xColumn.type === DataType.DATETIME) : false;
     const yColumnValid = yColumn ? isNumericColumn(yColumn) : false;
 
     const getTypeIcon = (type: DataType) => {

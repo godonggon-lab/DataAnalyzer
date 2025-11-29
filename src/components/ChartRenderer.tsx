@@ -63,7 +63,7 @@ const ChartRenderer: React.FC = () => {
 
             // 전체 데이터에 대해 다운샘플링 적용 (50000개로 설정하여 디테일 유지하면서 성능 확보)
             // ECharts가 줌/팬을 자체적으로 처리하도록 함
-            const sampledData = downsampleData(dataPoints, 50000);
+            const sampledData = downsampleData(dataPoints, 300000);
 
             return {
                 name: yColumnName,
@@ -259,6 +259,29 @@ const ChartRenderer: React.FC = () => {
         const seriesList = chartData.series.map((seriesInfo) => {
             const seriesData = seriesInfo.data.map((point: ChartDataPoint) => [point.x, point.y]);
 
+            const markPointConfig = {
+                data: [
+                    { type: 'max', name: 'Max' },
+                    { type: 'min', name: 'Min' }
+                ],
+                symbol: 'pin',
+                symbolSize: 40,
+                label: {
+                    show: true,
+                    formatter: (params: any) => {
+                        return `${seriesInfo.name} ${params.name} : ${params.value}`;
+                    },
+                    color: '#fff',
+                    fontSize: 10,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    padding: [4, 8],
+                    borderRadius: 4,
+                },
+                itemStyle: {
+                    color: seriesInfo.color
+                }
+            };
+
             let seriesConfig: any;
             switch (chartType) {
                 case ChartType.SCATTER:
@@ -273,6 +296,7 @@ const ChartRenderer: React.FC = () => {
                         },
                         large: true,
                         largeThreshold: 2000,
+                        markPoint: markPointConfig,
                     };
                     break;
 
@@ -291,6 +315,7 @@ const ChartRenderer: React.FC = () => {
                         },
                         symbol: 'none',
                         sampling: 'lttb',
+                        markPoint: markPointConfig,
                     };
                     break;
 
@@ -304,6 +329,7 @@ const ChartRenderer: React.FC = () => {
                             borderRadius: [4, 4, 0, 0],
                         },
                         large: true,
+                        markPoint: markPointConfig,
                     };
                     break;
 
@@ -312,6 +338,7 @@ const ChartRenderer: React.FC = () => {
                         name: seriesInfo.name,
                         type: 'scatter',
                         data: seriesData,
+                        markPoint: markPointConfig,
                     };
             }
 

@@ -175,7 +175,6 @@ const ChartRenderer: React.FC = () => {
                 },
                 axisLabel: {
                     color: '#94a3b8',
-                    rotate: chartData.isXAxisTime ? 45 : 0, // DateTime일 때만 회전
                     hideOverlap: true, // 겹침 방지
                     formatter: chartData.isXAxisTime ? (value: number) => {
                         // DateTime 포맷 간소화

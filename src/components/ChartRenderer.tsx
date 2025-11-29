@@ -102,7 +102,7 @@ const ChartRenderer: React.FC = () => {
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '15%',
+                bottom: chartData.isXAxisTime ? '20%' : '15%', // DateTime 라벨을 위한 추가 공간
                 top: selectedYColumns.length > 1 ? '15%' : '10%', // 범례 공간 확보
                 containLabel: true,
             },
@@ -175,9 +175,22 @@ const ChartRenderer: React.FC = () => {
                 },
                 axisLabel: {
                     color: '#94a3b8',
-                    rotate: 45, // 라벨 회전
+                    rotate: chartData.isXAxisTime ? 45 : 0, // DateTime일 때만 회전
                     hideOverlap: true, // 겹침 방지
-                    formatter: chartData.isXAxisTime ? undefined : (value: number) => {
+                    formatter: chartData.isXAxisTime ? (value: number) => {
+                        // DateTime 포맷 간소화
+                        const date = new Date(value);
+                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                        const day = date.getDate().toString().padStart(2, '0');
+                        const hour = date.getHours().toString().padStart(2, '0');
+                        const minute = date.getMinutes().toString().padStart(2, '0');
+
+                        // 시간이 00:00이면 날짜만, 아니면 날짜+시간
+                        if (hour === '00' && minute === '00') {
+                            return `${month}-${day}`;
+                        }
+                        return `${month}-${day} ${hour}:${minute}`;
+                    } : (value: number) => {
                         // 숫자가 너무 길면 줄임
                         if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                         if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;

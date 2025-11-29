@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, useDeferredValue } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useDataStore } from '../store/dataStore';
 import { ChartType, ChartDataPoint } from '../types';
@@ -23,9 +23,6 @@ const ChartRenderer: React.FC = () => {
         selectedYColumns,
         chartType,
     } = useDataStore();
-
-    const [zoomRange, setZoomRange] = React.useState<{ start: number; end: number } | null>(null);
-    const deferredZoomRange = useDeferredValue(zoomRange);
 
     // 차트 데이터 준비
     const chartData = useMemo(() => {
@@ -64,15 +61,9 @@ const ChartRenderer: React.FC = () => {
                 }
             }
 
-            let targetData = dataPoints;
-            if (deferredZoomRange) {
-                const startIndex = Math.floor(dataPoints.length * (deferredZoomRange.start / 100));
-                const endIndex = Math.ceil(dataPoints.length * (deferredZoomRange.end / 100));
-                targetData = dataPoints.slice(startIndex, endIndex);
-            }
-
-            // 다운샘플링 적용 (10000개로 증가하여 더 부드러운 곡선 표현)
-            const sampledData = downsampleData(targetData, 10000);
+            // 전체 데이터에 대해 다운샘플링 적용 (50000개로 설정하여 디테일 유지하면서 성능 확보)
+            // ECharts가 줌/팬을 자체적으로 처리하도록 함
+            const sampledData = downsampleData(dataPoints, 50000);
 
             return {
                 name: yColumnName,
@@ -90,20 +81,12 @@ const ChartRenderer: React.FC = () => {
             series: seriesDataList,
             original: totalOriginal,
             sampled: totalSampled,
-            isZoomed: !!deferredZoomRange,
             isXAxisTime,
         };
-    }, [rawData, columns, selectedXColumn, selectedYColumns, deferredZoomRange]);
+    }, [rawData, columns, selectedXColumn, selectedYColumns]);
 
-    // ECharts 이벤트 핸들러
-    const onEvents = useMemo(() => ({
-        'dataZoom': (params: any) => {
-            // dataZoom 이벤트에서 start/end 퍼센트 가져오기
-            const start = params.start ?? params.batch?.[0]?.start ?? 0;
-            const end = params.end ?? params.batch?.[0]?.end ?? 100;
-            setZoomRange({ start, end });
-        }
-    }), []);
+    // ECharts 이벤트 핸들러 (필요 시 추가)
+    const onEvents = useMemo(() => ({}), []);
 
     // ECharts 옵션 생성
     const chartOption = useMemo(() => {
@@ -241,10 +224,10 @@ const ChartRenderer: React.FC = () => {
                 {
                     type: 'inside',
                     xAxisIndex: 0,
-                    filterMode: 'empty', // 데이터 필터링 모드 변경 (중요: filterMode를 empty나 none으로 해야 원본 데이터 보존됨)
+                    filterMode: 'empty',
                 },
                 {
-                    type: 'slider', // 하단 슬라이더 추가
+                    type: 'slider',
                     xAxisIndex: 0,
                     filterMode: 'empty',
                     height: 20,
@@ -261,7 +244,7 @@ const ChartRenderer: React.FC = () => {
                     textStyle: {
                         color: '#cbd5e1'
                     },
-                    borderColor: '#475569'
+                    borderColor: '#475569',
                 },
                 {
                     type: 'inside',

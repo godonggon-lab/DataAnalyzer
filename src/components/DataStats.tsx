@@ -24,33 +24,33 @@ const DataStats: React.FC = () => {
                 <svg className="w-5 h-5 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                데이터 정보
+                Data Information
             </h2>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-dark-900/50 rounded-lg p-4">
-                    <div className="text-dark-400 text-sm mb-1">파일명</div>
+                    <div className="text-dark-400 text-sm mb-1">File Name</div>
                     <div className="text-white font-semibold truncate" title={fileInfo.name}>
                         {fileInfo.name}
                     </div>
                 </div>
 
                 <div className="bg-dark-900/50 rounded-lg p-4">
-                    <div className="text-dark-400 text-sm mb-1">파일 크기</div>
+                    <div className="text-dark-400 text-sm mb-1">File Size</div>
                     <div className="text-white font-semibold">
                         {formatFileSize(fileInfo.size)}
                     </div>
                 </div>
 
                 <div className="bg-dark-900/50 rounded-lg p-4">
-                    <div className="text-dark-400 text-sm mb-1">총 행 수</div>
+                    <div className="text-dark-400 text-sm mb-1">Total Rows</div>
                     <div className="text-white font-semibold">
                         {rawData.length.toLocaleString()}
                     </div>
                 </div>
 
                 <div className="bg-dark-900/50 rounded-lg p-4">
-                    <div className="text-dark-400 text-sm mb-1">컬럼 수</div>
+                    <div className="text-dark-400 text-sm mb-1">Columns</div>
                     <div className="text-white font-semibold">
                         {columns.length}
                     </div>

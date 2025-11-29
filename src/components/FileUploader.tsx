@@ -12,7 +12,7 @@ const FileUploader = () => {
         const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
 
         if (!validExtensions.includes(fileExtension)) {
-            setError('지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 업로드해주세요.');
+            setError('Unsupported file format. Please upload a CSV or Excel file.');
             return;
         }
 
@@ -76,7 +76,7 @@ const FileUploader = () => {
                         break;
 
                     case 'error':
-                        setError(message.error || '파일 처리 중 오류가 발생했습니다.');
+                        setError(message.error || 'An error occurred while processing the file.');
                         setLoading(false);
                         worker.terminate();
                         break;
@@ -84,8 +84,8 @@ const FileUploader = () => {
             };
 
             worker.onerror = (event) => {
-                const errorMsg = event.message || 'Worker 실행 중 알 수 없는 오류가 발생했습니다.';
-                setError('Worker 오류: ' + errorMsg);
+                const errorMsg = event.message || 'Unknown error occurred during Worker execution.';
+                setError('Worker Error: ' + errorMsg);
                 setLoading(false);
                 worker.terminate();
             };
@@ -94,7 +94,7 @@ const FileUploader = () => {
             worker.postMessage(file);
 
         } catch (error) {
-            setError(error instanceof Error ? error.message : '파일 처리 중 오류가 발생했습니다.');
+            setError(error instanceof Error ? error.message : 'An error occurred while processing the file.');
             setLoading(false);
         }
     }, [setData, setLoading, setProgress, setError]);
@@ -166,11 +166,11 @@ const FileUploader = () => {
                         </div>
 
                         <h3 className="text-xl font-semibold text-white mb-2">
-                            파일을 드래그하거나 클릭하여 업로드
+                            Drag and drop or click to upload a file
                         </h3>
 
                         <p className="text-dark-400 mb-6">
-                            CSV, XLSX, XLS 파일 지원 • 용량 제한 없음
+                            Supports CSV, XLSX, XLS files • No size limit
                         </p>
 
                         <label className="inline-block">
@@ -185,7 +185,7 @@ const FileUploader = () => {
                                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
-                                파일 선택
+                                Select File
                             </span>
                         </label>
                     </>
@@ -208,12 +208,12 @@ const FileUploader = () => {
                         </div>
 
                         <h3 className="text-xl font-semibold text-white">
-                            파일 처리 중...
+                            Processing file...
                         </h3>
 
                         <div className="w-full max-w-md mx-auto">
                             <div className="flex justify-between text-sm text-dark-400 mb-2">
-                                <span>진행률</span>
+                                <span>Progress</span>
                                 <span>{Math.round(progress)}%</span>
                             </div>
                             <div className="w-full bg-dark-700 rounded-full h-3 overflow-hidden">

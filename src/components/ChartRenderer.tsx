@@ -380,10 +380,10 @@ const ChartRenderer: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 <h3 className="text-xl font-semibold text-dark-400 mb-2">
-                    X축과 Y축을 선택해주세요
+                    Please select X and Y axes
                 </h3>
                 <p className="text-dark-500">
-                    위에서 컬럼을 선택하면 차트가 표시됩니다
+                    Select columns above to display the chart
                 </p>
             </div>
         );
@@ -396,10 +396,10 @@ const ChartRenderer: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <h3 className="text-xl font-semibold text-yellow-400 mb-2">
-                    유효한 데이터가 없습니다
+                    No valid data
                 </h3>
                 <p className="text-dark-400">
-                    선택한 컬럼에 숫자 데이터가 포함되어 있지 않습니다
+                    Selected columns contain no numeric data
                 </p>
             </div>
         );
@@ -413,16 +413,16 @@ const ChartRenderer: React.FC = () => {
                         <svg className="w-6 h-6 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                         </svg>
-                        데이터 시각화
+                        Data Visualization
                     </h2>
 
                     <div className="text-sm text-dark-400">
                         <span className="font-medium text-primary-400">{chartData.sampled.toLocaleString()}</span>
                         {' / '}
-                        <span>{chartData.original.toLocaleString()}</span> 포인트
+                        <span>{chartData.original.toLocaleString()}</span> points
                         {chartData.sampled < chartData.original && (
                             <span className="ml-2 text-xs text-yellow-400">
-                                (다운샘플링 적용)
+                                (Downsampled)
                             </span>
                         )}
                     </div>

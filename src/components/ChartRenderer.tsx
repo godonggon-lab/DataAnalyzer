@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useDeferredValue } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useDataStore } from '../store/dataStore';
 import { ChartType, ChartDataPoint } from '../types';
@@ -25,6 +25,7 @@ const ChartRenderer: React.FC = () => {
     } = useDataStore();
 
     const [zoomRange, setZoomRange] = React.useState<{ start: number; end: number } | null>(null);
+    const deferredZoomRange = useDeferredValue(zoomRange);
 
     // 차트 데이터 준비
     const chartData = useMemo(() => {
@@ -64,13 +65,14 @@ const ChartRenderer: React.FC = () => {
             }
 
             let targetData = dataPoints;
-            if (zoomRange) {
-                const startIndex = Math.floor(dataPoints.length * (zoomRange.start / 100));
-                const endIndex = Math.ceil(dataPoints.length * (zoomRange.end / 100));
+            if (deferredZoomRange) {
+                const startIndex = Math.floor(dataPoints.length * (deferredZoomRange.start / 100));
+                const endIndex = Math.ceil(dataPoints.length * (deferredZoomRange.end / 100));
                 targetData = dataPoints.slice(startIndex, endIndex);
             }
 
-            const sampledData = downsampleData(targetData, 3000);
+            // 다운샘플링 적용 (10000개로 증가하여 더 부드러운 곡선 표현)
+            const sampledData = downsampleData(targetData, 10000);
 
             return {
                 name: yColumnName,
@@ -88,10 +90,10 @@ const ChartRenderer: React.FC = () => {
             series: seriesDataList,
             original: totalOriginal,
             sampled: totalSampled,
-            isZoomed: !!zoomRange,
+            isZoomed: !!deferredZoomRange,
             isXAxisTime,
         };
-    }, [rawData, columns, selectedXColumn, selectedYColumns, zoomRange]);
+    }, [rawData, columns, selectedXColumn, selectedYColumns, deferredZoomRange]);
 
     // ECharts 이벤트 핸들러
     const onEvents = useMemo(() => ({
@@ -110,6 +112,9 @@ const ChartRenderer: React.FC = () => {
         }
 
         const baseOption = {
+            // 대용량 데이터 렌더링 최적화
+            progressive: 15000,
+            progressiveThreshold: 3000,
             backgroundColor: 'transparent',
             grid: {
                 left: '3%',

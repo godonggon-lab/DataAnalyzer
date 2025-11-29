@@ -28,8 +28,6 @@ const ChartRenderer: React.FC = () => {
 
     // 차트 데이터 준비
     const chartData = useMemo(() => {
-        console.log('[ChartRenderer] chartData 재계산:', selectedYColumns);
-
         if (!selectedXColumn || selectedYColumns.length === 0 || rawData.length === 0) {
             return null;
         }
@@ -423,6 +421,7 @@ const ChartRenderer: React.FC = () => {
                             style={{ height: '100%', width: '100%' }}
                             opts={{ renderer: 'canvas' }}
                             onEvents={onEvents}
+                            notMerge={true}
                         />
                     )}
                 </div>

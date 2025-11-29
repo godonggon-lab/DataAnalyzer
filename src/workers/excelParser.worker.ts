@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 
 // 타입 정의
 interface WorkerMessage {
-    type: 'progress' | 'complete' | 'error';
+    type: 'init' | 'chunk' | 'progress' | 'complete' | 'error';
     progress?: number;
     data?: {
         headers: string[];
@@ -15,6 +15,7 @@ interface WorkerMessage {
         sampleValues?: any[];
     }>;
     error?: string;
+    chunkData?: any[][];
 }
 
 // WebWorker 컨텍스트에서 실행
@@ -28,19 +29,15 @@ self.onmessage = async (event: MessageEvent) => {
 
         reader.onprogress = (event) => {
             if (event.lengthComputable) {
-                const progress = (event.loaded / event.total) * 90;
-                const progressMessage: WorkerMessage = {
-                    type: 'progress',
-                    progress,
-                };
-                self.postMessage(progressMessage);
+                const progress = (event.loaded / event.total) * 50; // 읽기 50%
+                self.postMessage({ type: 'progress', progress } as WorkerMessage);
             }
         };
 
         reader.onload = (event) => {
             try {
                 const data = event.target?.result as ArrayBuffer;
-                const workbook = XLSX.read(data, { type: 'array' });
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true }); // cellDates: true로 날짜 객체 자동 변환
 
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
@@ -60,52 +57,98 @@ self.onmessage = async (event: MessageEvent) => {
 
                 console.log('[Excel Worker] Parse complete, rows:', rows.length);
 
-                // 컬럼 타입 추론 (간단 버전)
-                const columns = headers.map((name) => ({
-                    name,
-                    type: 'string',
-                    sampleValues: [],
-                }));
+                // 컬럼 타입 추론
+                const columns = headers.map((name, index) => {
+                    const sampleValues = rows
+                        .slice(0, 100)
+                        .map(row => row[index])
+                        .filter(val => val !== null && val !== undefined && val !== '');
 
-                const completeMessage: WorkerMessage = {
+                    let type = 'string';
+                    if (sampleValues.length > 0) {
+                        let numberCount = 0;
+                        let dateCount = 0;
+                        const total = sampleValues.length;
+
+                        for (const val of sampleValues) {
+                            // Date check
+                            if (val instanceof Date || (typeof val === 'string' && !isNaN(Date.parse(val)) && val.length > 5 && (val.includes('-') || val.includes('/')))) {
+                                dateCount++;
+                                continue;
+                            }
+
+                            // Number check
+                            let isNum = false;
+                            if (typeof val === 'number') {
+                                isNum = !isNaN(val) && isFinite(val);
+                            } else if (typeof val === 'string') {
+                                const cleaned = val.replace(/,/g, '');
+                                const num = parseFloat(cleaned);
+                                isNum = !isNaN(num) && isFinite(num) && cleaned.trim() !== '';
+                            }
+                            if (isNum) numberCount++;
+                        }
+
+                        if (numberCount / total >= 0.8) type = 'number';
+                        else if (dateCount / total >= 0.8) type = 'datetime';
+                    }
+
+                    return {
+                        name,
+                        type,
+                        sampleValues: sampleValues.slice(0, 5),
+                    };
+                });
+
+                // 1. Init 메시지 전송
+                self.postMessage({
+                    type: 'init',
+                    columns,
+                    progress: 60
+                } as WorkerMessage);
+
+                // 2. Chunk 메시지 전송 (Excel은 한번에 처리하지만 구조 통일)
+                // 대용량일 경우 나눠서 보낼 수도 있지만 일단 한번에 전송
+                const chunkSize = 5000;
+                for (let i = 0; i < rows.length; i += chunkSize) {
+                    const chunk = rows.slice(i, i + chunkSize);
+                    self.postMessage({
+                        type: 'chunk',
+                        chunkData: chunk,
+                        progress: 60 + Math.min(39, ((i + chunk.length) / rows.length) * 39)
+                    } as WorkerMessage);
+                }
+
+                // 3. Complete 메시지 전송
+                self.postMessage({
                     type: 'complete',
                     progress: 100,
-                    data: {
-                        headers,
-                        rows,
-                        rowCount: rows.length,
-                    },
-                    columns,
-                };
+                } as WorkerMessage);
 
-                self.postMessage(completeMessage);
             } catch (error) {
                 console.error('[Excel Worker] Parse error:', error);
-                const errorMessage: WorkerMessage = {
+                self.postMessage({
                     type: 'error',
                     error: error instanceof Error ? error.message : '파싱 중 오류가 발생했습니다.',
-                };
-                self.postMessage(errorMessage);
+                } as WorkerMessage);
             }
         };
 
         reader.onerror = () => {
-            const errorMessage: WorkerMessage = {
+            self.postMessage({
                 type: 'error',
                 error: '파일 읽기 실패',
-            };
-            self.postMessage(errorMessage);
+            } as WorkerMessage);
         };
 
         reader.readAsArrayBuffer(file);
 
     } catch (error) {
         console.error('[Excel Worker] Error:', error);
-        const errorMessage: WorkerMessage = {
+        self.postMessage({
             type: 'error',
             error: error instanceof Error ? error.message : '파싱 중 오류가 발생했습니다.',
-        };
-        self.postMessage(errorMessage);
+        } as WorkerMessage);
     }
 };
 

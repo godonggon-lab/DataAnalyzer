@@ -9,7 +9,7 @@ interface DataState {
 
     // 선택된 컬럼
     selectedXColumn: string | null;
-    selectedYColumn: string | null;
+    selectedYColumns: string[]; // 다중 Y축 선택
     chartType: ChartType;
 
     // UI 상태
@@ -23,7 +23,8 @@ interface DataState {
     appendData: (chunk: any[][]) => void;
     finalizeData: () => void;
     setSelectedXColumn: (column: string | null) => void;
-    setSelectedYColumn: (column: string | null) => void;
+    setSelectedYColumns: (columns: string[]) => void;
+    toggleYColumn: (columnName: string) => void;
     setChartType: (type: ChartType) => void;
     setLoading: (loading: boolean) => void;
     setProgress: (progress: number) => void;
@@ -37,7 +38,7 @@ export const useDataStore = create<DataState>((set) => ({
     columns: [],
     fileInfo: null,
     selectedXColumn: null,
-    selectedYColumn: null,
+    selectedYColumns: [],
     chartType: ChartType.SCATTER,
     isLoading: false,
     progress: 0,
@@ -73,7 +74,16 @@ export const useDataStore = create<DataState>((set) => ({
 
     setSelectedXColumn: (column) => set({ selectedXColumn: column }),
 
-    setSelectedYColumn: (column) => set({ selectedYColumn: column }),
+    setSelectedYColumns: (columns) => set({ selectedYColumns: columns }),
+
+    toggleYColumn: (columnName) => set((state) => {
+        const isSelected = state.selectedYColumns.includes(columnName);
+        return {
+            selectedYColumns: isSelected
+                ? state.selectedYColumns.filter(col => col !== columnName)
+                : [...state.selectedYColumns, columnName]
+        };
+    }),
 
     setChartType: (type) => set({ chartType: type }),
 
@@ -88,7 +98,7 @@ export const useDataStore = create<DataState>((set) => ({
         columns: [],
         fileInfo: null,
         selectedXColumn: null,
-        selectedYColumn: null,
+        selectedYColumns: [],
         chartType: ChartType.SCATTER,
         isLoading: false,
         progress: 0,

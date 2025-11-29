@@ -5,13 +5,22 @@ import { ChartType, ChartDataPoint } from '../types';
 import { downsampleData } from '../utils/dataSampling';
 import { toNumber } from '../utils/typeInference';
 
+// 시리즈 색상 팔레트
+const seriesColors = [
+    '#38bdf8', // Sky Blue
+    '#34d399', // Green
+    '#fbbf24', // Yellow
+    '#f87171', // Red
+    '#a78bfa', // Purple
+];
+
 const ChartRenderer: React.FC = () => {
     const chartRef = useRef<ReactECharts>(null);
     const {
         rawData,
         columns,
         selectedXColumn,
-        selectedYColumn,
+        selectedYColumns,
         chartType,
     } = useDataStore();
 
@@ -19,62 +28,72 @@ const ChartRenderer: React.FC = () => {
 
     // 차트 데이터 준비
     const chartData = useMemo(() => {
-        if (!selectedXColumn || !selectedYColumn || rawData.length === 0) {
+        console.log('[ChartRenderer] chartData 재계산:', selectedYColumns);
+
+        if (!selectedXColumn || selectedYColumns.length === 0 || rawData.length === 0) {
             return null;
         }
 
         const xIndex = columns.findIndex(c => c.name === selectedXColumn);
-        const yIndex = columns.findIndex(c => c.name === selectedYColumn);
-
-        if (xIndex === -1 || yIndex === -1) {
+        if (xIndex === -1) {
             return null;
         }
-
-        // 데이터 포인트 생성
-        const dataPoints: ChartDataPoint[] = [];
 
         // X축 컬럼 타입 확인
         const xColumn = columns.find(c => c.name === selectedXColumn);
         const isXAxisTime = xColumn?.type === 'datetime';
 
-        // 전체 데이터를 순회하며 포인트 추출
-        for (const row of rawData) {
-            let xValue: number;
+        // 각 Y컬럼마다 시리즈 생성
+        const seriesDataList = selectedYColumns.map((yColumnName, seriesIndex) => {
+            const yIndex = columns.findIndex(c => c.name === yColumnName);
+            if (yIndex === -1) return null;
 
-            if (isXAxisTime) {
-                const val = row[xIndex];
-                xValue = new Date(val).getTime();
-            } else {
-                xValue = toNumber(row[xIndex]);
+            const dataPoints: ChartDataPoint[] = [];
+
+            for (const row of rawData) {
+                let xValue: number;
+                if (isXAxisTime) {
+                    const val = row[xIndex];
+                    xValue = new Date(val).getTime();
+                } else {
+                    xValue = toNumber(row[xIndex]);
+                }
+                const yValue = toNumber(row[yIndex]);
+
+                if (!isNaN(xValue) && !isNaN(yValue) && isFinite(xValue) && isFinite(yValue)) {
+                    dataPoints.push({ x: xValue, y: yValue });
+                }
             }
 
-            const yValue = toNumber(row[yIndex]);
-
-            // 유효한 숫자인 경우만 포함 (날짜는 timestamp로 변환됨)
-            if (!isNaN(xValue) && !isNaN(yValue) && isFinite(xValue) && isFinite(yValue)) {
-                dataPoints.push({ x: xValue, y: yValue });
+            let targetData = dataPoints;
+            if (zoomRange) {
+                const startIndex = Math.floor(dataPoints.length * (zoomRange.start / 100));
+                const endIndex = Math.ceil(dataPoints.length * (zoomRange.end / 100));
+                targetData = dataPoints.slice(startIndex, endIndex);
             }
-        }
 
-        // 줌 범위에 따른 데이터 필터링
-        let targetData = dataPoints;
-        if (zoomRange) {
-            const startIndex = Math.floor(dataPoints.length * (zoomRange.start / 100));
-            const endIndex = Math.ceil(dataPoints.length * (zoomRange.end / 100));
-            targetData = dataPoints.slice(startIndex, endIndex);
-        }
+            const sampledData = downsampleData(targetData, 3000);
 
-        // 다운샘플링 적용 (줌 상태일 때도 3000개 유지하여 디테일 확보)
-        const sampledData = downsampleData(targetData, 3000);
+            return {
+                name: yColumnName,
+                data: sampledData,
+                originalCount: dataPoints.length,
+                sampledCount: sampledData.length,
+                color: seriesColors[seriesIndex % seriesColors.length],
+            };
+        }).filter(series => series !== null);
+
+        const totalOriginal = seriesDataList.reduce((sum, s) => sum + (s?.originalCount || 0), 0);
+        const totalSampled = seriesDataList.reduce((sum, s) => sum + (s?.sampledCount || 0), 0);
 
         return {
-            original: dataPoints.length,
-            sampled: sampledData.length,
-            data: sampledData,
+            series: seriesDataList,
+            original: totalOriginal,
+            sampled: totalSampled,
             isZoomed: !!zoomRange,
             isXAxisTime,
         };
-    }, [rawData, columns, selectedXColumn, selectedYColumn, zoomRange]);
+    }, [rawData, columns, selectedXColumn, selectedYColumns, zoomRange]);
 
     // ECharts 이벤트 핸들러
     const onEvents = useMemo(() => ({
@@ -92,17 +111,22 @@ const ChartRenderer: React.FC = () => {
             return null;
         }
 
-        const seriesData = chartData.data.map(point => [point.x, point.y]);
-
         const baseOption = {
             backgroundColor: 'transparent',
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '15%', // 라벨 회전을 위해 하단 여백 확보
-                top: '10%',
+                bottom: '15%',
+                top: selectedYColumns.length > 1 ? '15%' : '10%', // 범례 공간 확보
                 containLabel: true,
             },
+            legend: selectedYColumns.length > 1 ? {
+                top: '5%',
+                textStyle: {
+                    color: '#cbd5e1',
+                },
+                icon: 'circle',
+            } : undefined,
             tooltip: {
                 trigger: 'axis',
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
@@ -185,7 +209,7 @@ const ChartRenderer: React.FC = () => {
             },
             yAxis: {
                 type: 'value',
-                name: selectedYColumn,
+                name: selectedYColumns.length > 1 ? 'Value' : selectedYColumns[0],
                 nameLocation: 'middle',
                 nameGap: 50,
                 nameTextStyle: {
@@ -245,65 +269,74 @@ const ChartRenderer: React.FC = () => {
             animation: false, // 대용량 데이터 렌더링 시 애니메이션 끄기 권장
         };
 
-        // 차트 타입별 시리즈 설정
-        let series: any;
+        // 각 Y 컬럼마다 시리즈 생성
+        const seriesList = chartData.series.map((seriesInfo) => {
+            const seriesData = seriesInfo.data.map((point: ChartDataPoint) => [point.x, point.y]);
 
-        switch (chartType) {
-            case ChartType.SCATTER:
-                series = {
-                    type: 'scatter',
-                    data: seriesData,
-                    symbolSize: 6,
-                    itemStyle: {
-                        color: '#38bdf8',
-                        opacity: 0.7,
-                    },
-                    large: true, // 대용량 최적화
-                    largeThreshold: 2000,
-                };
-                break;
+            let seriesConfig: any;
+            switch (chartType) {
+                case ChartType.SCATTER:
+                    seriesConfig = {
+                        name: seriesInfo.name,
+                        type: 'scatter',
+                        data: seriesData,
+                        symbolSize: 6,
+                        itemStyle: {
+                            color: seriesInfo.color,
+                            opacity: 0.7,
+                        },
+                        large: true,
+                        largeThreshold: 2000,
+                    };
+                    break;
 
-            case ChartType.LINE:
-                series = {
-                    type: 'line',
-                    data: seriesData,
-                    smooth: true,
-                    lineStyle: {
-                        color: '#38bdf8',
-                        width: 2,
-                    },
-                    itemStyle: {
-                        color: '#38bdf8',
-                    },
-                    symbol: 'none', // 라인 차트에서 심볼 제거 (성능)
-                    sampling: 'lttb', // ECharts 내부 샘플링도 활용
-                };
-                break;
+                case ChartType.LINE:
+                    seriesConfig = {
+                        name: seriesInfo.name,
+                        type: 'line',
+                        data: seriesData,
+                        smooth: true,
+                        lineStyle: {
+                            color: seriesInfo.color,
+                            width: 2,
+                        },
+                        itemStyle: {
+                            color: seriesInfo.color,
+                        },
+                        symbol: 'none',
+                        sampling: 'lttb',
+                    };
+                    break;
 
-            case ChartType.BAR:
-                series = {
-                    type: 'bar',
-                    data: seriesData,
-                    itemStyle: {
-                        color: '#38bdf8',
-                        borderRadius: [4, 4, 0, 0],
-                    },
-                    large: true,
-                };
-                break;
+                case ChartType.BAR:
+                    seriesConfig = {
+                        name: seriesInfo.name,
+                        type: 'bar',
+                        data: seriesData,
+                        itemStyle: {
+                            color: seriesInfo.color,
+                            borderRadius: [4, 4, 0, 0],
+                        },
+                        large: true,
+                    };
+                    break;
 
-            default:
-                series = {
-                    type: 'scatter',
-                    data: seriesData,
-                };
-        }
+                default:
+                    seriesConfig = {
+                        name: seriesInfo.name,
+                        type: 'scatter',
+                        data: seriesData,
+                    };
+            }
+
+            return seriesConfig;
+        });
 
         return {
             ...baseOption,
-            series: [series],
+            series: seriesList,
         };
-    }, [chartData, chartType, selectedXColumn, selectedYColumn]);
+    }, [chartData, chartType, selectedXColumn, selectedYColumns]);
 
     // 윈도우 리사이즈 시 차트 크기 조정
     useEffect(() => {
@@ -327,7 +360,7 @@ const ChartRenderer: React.FC = () => {
         };
     }, []);
 
-    if (!selectedXColumn || !selectedYColumn) {
+    if (!selectedXColumn || selectedYColumns.length === 0) {
         return (
             <div className="w-full bg-dark-800/50 backdrop-blur-sm rounded-2xl p-12 border border-dark-700 text-center animate-slide-up">
                 <svg className="mx-auto h-16 w-16 text-dark-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -343,7 +376,7 @@ const ChartRenderer: React.FC = () => {
         );
     }
 
-    if (!chartData || chartData.data.length === 0) {
+    if (!chartData || chartData.series.length === 0) {
         return (
             <div className="w-full bg-dark-800/50 backdrop-blur-sm rounded-2xl p-12 border border-dark-700 text-center animate-slide-up">
                 <svg className="mx-auto h-16 w-16 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

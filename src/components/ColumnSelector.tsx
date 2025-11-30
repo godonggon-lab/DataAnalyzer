@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDataStore } from '../store/dataStore';
 import { ChartType, DataType } from '../types';
-import { isNumericColumn } from '../utils/typeInference';
+import { isNumericColumn, toNumber } from '../utils/typeInference';
 
 // 시리즈 색상 팔레트
 const seriesColors = [
@@ -18,10 +18,103 @@ const ColumnSelector: React.FC = () => {
         selectedXColumn,
         selectedYColumns,
         chartType,
+        rawData,
+        filterRange,
+        binCount,
+        boxPlotMaxCategories,
         setSelectedXColumn,
         toggleYColumn,
         setChartType,
+        setFilterRange,
+        setBinCount,
+        setBoxPlotMaxCategories,
     } = useDataStore();
+
+    // 로컬 입력 상태 (입력 중 끊김 방지)
+    const [localMin, setLocalMin] = useState<string>('');
+    const [localMax, setLocalMax] = useState<string>('');
+
+    // Bin 카운트 로컬 상태 (smooth slider)
+    const [localBinCount, setLocalBinCount] = useState(binCount);
+    const [localBoxPlotMax, setLocalBoxPlotMax] = useState(boxPlotMaxCategories);
+
+    // 필터 대상 컬럼 결정
+    const targetColumnName = chartType === ChartType.HISTOGRAM ? selectedYColumns[0] : selectedXColumn;
+    const targetColumn = columns.find(c => c.name === targetColumnName);
+    const isTargetNumeric = targetColumn ? isNumericColumn(targetColumn) : false;
+
+    // 컬럼 변경 시 필터 범위 초기화 및 로컬 상태 동기화
+    useEffect(() => {
+        if (!targetColumnName || !isTargetNumeric || rawData.length === 0) {
+            setFilterRange(null);
+            setLocalMin('');
+            setLocalMax('');
+            return;
+        }
+
+        const colIndex = columns.findIndex(c => c.name === targetColumnName);
+        if (colIndex === -1) return;
+
+        let min = Infinity;
+        let max = -Infinity;
+
+        // 데이터 스캔하여 Min/Max 찾기
+        for (const row of rawData) {
+            const val = toNumber(row[colIndex]);
+            if (!isNaN(val) && isFinite(val)) {
+                if (val < min) min = val;
+                if (val > max) max = val;
+            }
+        }
+
+        if (min !== Infinity && max !== -Infinity) {
+            setFilterRange({ min, max });
+            setLocalMin(min.toString());
+            setLocalMax(max.toString());
+        }
+    }, [targetColumnName, isTargetNumeric, columns, rawData, setFilterRange]);
+
+    // Bin count debouncing (300ms delay)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setBinCount(localBinCount);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [localBinCount, setBinCount]);
+
+    // BoxPlot max categories debouncing (300ms delay)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setBoxPlotMaxCategories(localBoxPlotMax);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [localBoxPlotMax, setBoxPlotMaxCategories]);
+
+    // Store 값 변경 시 local 동기화
+    useEffect(() => {
+        setLocalBinCount(binCount);
+    }, [binCount]);
+
+    useEffect(() => {
+        setLocalBoxPlotMax(boxPlotMaxCategories);
+    }, [boxPlotMaxCategories]);
+
+    // 입력 핸들러
+    const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setLocalMin(e.target.value);
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && filterRange) {
+            setFilterRange({ ...filterRange, min: val });
+        }
+    };
+
+    const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setLocalMax(e.target.value);
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && filterRange) {
+            setFilterRange({ ...filterRange, max: val });
+        }
+    };
 
     const xColumn = columns.find(c => c.name === selectedXColumn);
     const xColumnValid = xColumn ? (isNumericColumn(xColumn) || xColumn.type === DataType.DATETIME) : false;
@@ -197,15 +290,113 @@ const ColumnSelector: React.FC = () => {
                             <option value={ChartType.SCATTER}>Scatter Plot</option>
                             <option value={ChartType.LINE}>Line Chart</option>
                             <option value={ChartType.BAR}>Bar Chart</option>
+                            <option value={ChartType.HISTOGRAM}>Histogram</option>
+                            <option value={ChartType.BOXPLOT}>Box Plot</option>
                         </select>
 
                         <div className="mt-2 text-xs text-dark-400">
                             {chartType === ChartType.SCATTER && 'Display data as points'}
                             {chartType === ChartType.LINE && 'Display with connected lines'}
                             {chartType === ChartType.BAR && 'Display as bars'}
+                            {chartType === ChartType.HISTOGRAM && 'Display frequency distribution (Y-axis data)'}
+                            {chartType === ChartType.BOXPLOT && 'Display statistical distribution (Min, Q1, Median, Q3, Max)'}
                         </div>
                     </div>
                 </div>
+
+                {/* 필터 및 옵션 섹션 */}
+                {(filterRange || chartType === ChartType.HISTOGRAM) && (
+                    <div className="mt-6 pt-6 border-t border-dark-600">
+                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                            <svg className="w-5 h-5 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            Data Filter & Options
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* 범위 필터 */}
+                            {filterRange && (
+                                <div>
+                                    <label className="block text-sm font-medium text-dark-300 mb-2">
+                                        Data Range Filter ({targetColumnName})
+                                    </label>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex-1">
+                                            <span className="text-xs text-dark-400 block mb-1">Min</span>
+                                            <input
+                                                type="number"
+                                                value={localMin}
+                                                onChange={handleMinChange}
+                                                className="w-full bg-dark-700 border border-dark-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                            />
+                                        </div>
+                                        <span className="text-dark-400 mt-5">~</span>
+                                        <div className="flex-1">
+                                            <span className="text-xs text-dark-400 block mb-1">Max</span>
+                                            <input
+                                                type="number"
+                                                value={localMax}
+                                                onChange={handleMaxChange}
+                                                className="w-full bg-dark-700 border border-dark-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="mt-2 text-xs text-dark-400">
+                                        Adjust min/max to filter data points.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* 히스토그램 Bin 설정 */}
+                            {chartType === ChartType.HISTOGRAM && (
+                                <div>
+                                    <label className="block text-sm font-medium text-dark-300 mb-2">
+                                        Histogram Bins: {localBinCount}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="5"
+                                        max="100"
+                                        step="1"
+                                        value={localBinCount}
+                                        onChange={(e) => setLocalBinCount(parseInt(e.target.value))}
+                                        className="w-full h-2 bg-dark-600 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                    />
+                                    <div className="flex justify-between text-xs text-dark-400 mt-1">
+                                        <span>5 (Coarse)</span>
+                                        <span>100 (Fine)</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* BoxPlot 최대 카테고리 설정 */}
+                            {chartType === ChartType.BOXPLOT && (
+                                <div>
+                                    <label className="block text-sm font-medium text-dark-300 mb-2">
+                                        BoxPlot Max Categories: {localBoxPlotMax}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="5"
+                                        max="100"
+                                        step="5"
+                                        value={localBoxPlotMax}
+                                        onChange={(e) => setLocalBoxPlotMax(parseInt(e.target.value))}
+                                        className="w-full h-2 bg-dark-600 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                    />
+                                    <div className="flex justify-between text-xs text-dark-400 mt-1">
+                                        <span>5 (Coarse)</span>
+                                        <span>100 (Fine)</span>
+                                    </div>
+                                    <p className="mt-2 text-xs text-dark-400">
+                                        If X-axis has more categories, they will be grouped.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

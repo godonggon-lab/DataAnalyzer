@@ -1,9 +1,10 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useDataStore } from '../store/dataStore';
 import { ChartType, ChartDataPoint } from '../types';
 import { downsampleData } from '../utils/dataSampling';
 import { toNumber } from '../utils/typeInference';
+import { calculateHistogram, groupDataForBoxPlot, calculateBoxPlotStats } from '../utils/statistics';
 
 // 시리즈 색상 팔레트
 const seriesColors = [
@@ -16,24 +17,100 @@ const seriesColors = [
 
 const ChartRenderer: React.FC = () => {
     const chartRef = useRef<ReactECharts>(null);
+    const [isChartLoading, setIsChartLoading] = useState(false);
+
     const {
         rawData,
         columns,
         selectedXColumn,
         selectedYColumns,
         chartType,
+        filterRange,
+        binCount,
+        boxPlotMaxCategories,
     } = useDataStore();
 
     // 차트 데이터 준비
     const chartData = useMemo(() => {
-        if (!selectedXColumn || selectedYColumns.length === 0 || rawData.length === 0) {
+        if (selectedYColumns.length === 0 || rawData.length === 0) {
             return null;
         }
 
-        const xIndex = columns.findIndex(c => c.name === selectedXColumn);
-        if (xIndex === -1) {
-            return null;
+        // 히스토그램 처리
+        if (chartType === ChartType.HISTOGRAM) {
+            const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
+            if (yIndex === -1) return null;
+
+            const values = rawData
+                .map(row => toNumber(row[yIndex]))
+                .filter(v => {
+                    if (isNaN(v) || !isFinite(v)) return false;
+                    if (filterRange) {
+                        return v >= filterRange.min && v <= filterRange.max;
+                    }
+                    return true;
+                });
+            const { bins, counts } = calculateHistogram(values, binCount);
+
+            return {
+                type: 'histogram',
+                xAxisData: bins,
+                series: [{
+                    name: selectedYColumns[0],
+                    data: counts,
+                    color: seriesColors[0]
+                }],
+                original: values.length,
+                sampled: values.length, // 히스토그램은 샘플링 없음
+                isXAxisTime: false
+            };
         }
+
+        // 박스플롯 처리
+        if (chartType === ChartType.BOXPLOT) {
+            const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
+            if (yIndex === -1) return null;
+
+            const yValues = rawData.map(row => toNumber(row[yIndex]));
+
+            let axisData: string[] = [];
+            let boxData: number[][] = [];
+
+            // X축이 선택된 경우 (그룹별 박스플롯)
+            if (selectedXColumn) {
+                const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+                if (xIndex !== -1) {
+                    const xValues = rawData.map(row => row[xIndex]);
+                    const result = groupDataForBoxPlot(xValues, yValues, boxPlotMaxCategories);
+                    axisData = result.axisData;
+                    boxData = result.boxData;
+                }
+            }
+            // X축이 없는 경우 (단일 박스플롯)
+            else {
+                axisData = [selectedYColumns[0]];
+                boxData = [calculateBoxPlotStats(yValues.filter(v => !isNaN(v) && isFinite(v)))];
+            }
+
+            return {
+                type: 'boxplot',
+                xAxisData: axisData,
+                series: [{
+                    name: selectedYColumns[0],
+                    data: boxData,
+                    color: seriesColors[0]
+                }],
+                original: rawData.length,
+                sampled: rawData.length,
+                isXAxisTime: false
+            };
+        }
+
+        // 기존 차트 (Scatter, Line, Bar)
+        if (!selectedXColumn) return null;
+
+        const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+        if (xIndex === -1) return null;
 
         // X축 컬럼 타입 확인
         const xColumn = columns.find(c => c.name === selectedXColumn);
@@ -57,12 +134,16 @@ const ChartRenderer: React.FC = () => {
                 const yValue = toNumber(row[yIndex]);
 
                 if (!isNaN(xValue) && !isNaN(yValue) && isFinite(xValue) && isFinite(yValue)) {
+                    // 필터링 적용 (X축 기준)
+                    if (filterRange) {
+                        if (xValue < filterRange.min || xValue > filterRange.max) {
+                            continue;
+                        }
+                    }
                     dataPoints.push({ x: xValue, y: yValue });
                 }
             }
 
-            // 전체 데이터에 대해 다운샘플링 적용 (50000개로 설정하여 디테일 유지하면서 성능 확보)
-            // ECharts가 줌/팬을 자체적으로 처리하도록 함
             const sampledData = downsampleData(dataPoints, 300000);
 
             return {
@@ -78,15 +159,22 @@ const ChartRenderer: React.FC = () => {
         const totalSampled = seriesDataList.reduce((sum, s) => sum + (s?.sampledCount || 0), 0);
 
         return {
+            type: 'basic',
             series: seriesDataList,
             original: totalOriginal,
             sampled: totalSampled,
             isXAxisTime,
-        };
-    }, [rawData, columns, selectedXColumn, selectedYColumns]);
+        }
+    }, [rawData, columns, selectedXColumn, selectedYColumns, chartType, filterRange, binCount, boxPlotMaxCategories]);
 
-    // ECharts 이벤트 핸들러 (필요 시 추가)
-    const onEvents = useMemo(() => ({}), []);
+    // 차트 데이터 로딩 상태 추적
+    useEffect(() => {
+        setIsChartLoading(true);
+        const timer = setTimeout(() => {
+            setIsChartLoading(false);
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [chartData]);
 
     // ECharts 옵션 생성
     const chartOption = useMemo(() => {
@@ -267,8 +355,96 @@ const ChartRenderer: React.FC = () => {
             animation: false, // 대용량 데이터 렌더링 시 애니메이션 끄기 권장
         };
 
+        // 히스토그램 옵션
+        if (chartData.type === 'histogram') {
+            return {
+                ...baseOption,
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: (params: any) => {
+                        const p = params[0];
+                        return `Range: ${p.name}<br/>Count: ${p.value}`;
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: chartData.xAxisData,
+                    name: 'Range',
+                    axisLabel: { rotate: 45 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Count'
+                },
+                series: [{
+                    name: chartData.series[0].name,
+                    type: 'bar',
+                    data: chartData.series[0].data,
+                    itemStyle: {
+                        // 각 bin마다 다른 색상 적용
+                        color: (params: any) => {
+                            const colors = [
+                                '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+                                '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#5470c6'
+                            ];
+                            return colors[params.dataIndex % colors.length];
+                        }
+                    },
+                    barCategoryGap: 0, // 히스토그램처럼 보이게 간격 제거
+                    large: true
+                }]
+            };
+        }
+
+        // 박스플롯 옵션
+        if (chartData.type === 'boxplot') {
+            return {
+                ...baseOption,
+                tooltip: {
+                    trigger: 'item',
+                    formatter: (param: any) => {
+                        return [
+                            `${param.name}: `,
+                            `Max: ${param.data[5]}`,
+                            `Q3: ${param.data[4]}`,
+                            `Median: ${param.data[3]}`,
+                            `Q1: ${param.data[2]}`,
+                            `Min: ${param.data[1]}`
+                        ].join('<br/>');
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: chartData.xAxisData,
+                    name: selectedXColumn || 'Variable',
+                    axisLabel: { rotate: 45 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: selectedYColumns[0]
+                },
+                series: [{
+                    name: chartData.series[0].name,
+                    type: 'boxplot',
+                    data: chartData.series[0].data,
+                    itemStyle: {
+                        // 각 카테고리마다 다른 색상 적용
+                        color: (params: any) => {
+                            const colors = [
+                                '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+                                '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#5470c6'
+                            ];
+                            return colors[params.dataIndex % colors.length];
+                        },
+                        borderColor: '#fff'
+                    }
+                }]
+            };
+        }
+
+        // 기존 차트 옵션 (Scatter, Line, Bar)
         // 각 Y 컬럼마다 시리즈 생성
-        const seriesList = chartData.series.map((seriesInfo) => {
+        const seriesList = chartData.series.map((seriesInfo: any) => {
             const seriesData = seriesInfo.data.map((point: ChartDataPoint) => [point.x, point.y]);
 
             const markPointConfig = {
@@ -385,7 +561,10 @@ const ChartRenderer: React.FC = () => {
         };
     }, []);
 
-    if (!selectedXColumn || selectedYColumns.length === 0) {
+    // X축 선택이 없어도 되는 차트 타입(히스토그램, 박스플롯)은 예외 처리
+    const isSingleVariableChart = chartType === ChartType.HISTOGRAM || chartType === ChartType.BOXPLOT;
+
+    if ((!selectedXColumn && !isSingleVariableChart) || selectedYColumns.length === 0) {
         return (
             <div className="w-full bg-dark-800/50 backdrop-blur-sm rounded-2xl p-12 border border-dark-700 text-center animate-slide-up">
                 <svg className="mx-auto h-16 w-16 text-dark-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -440,15 +619,22 @@ const ChartRenderer: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-dark-900/50 rounded-xl p-4" style={{ height: '600px' }}>
+                <div className="bg-dark-900/50 rounded-xl p-4 relative" style={{ height: '600px' }}>
+                    {isChartLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-dark-900/70 backdrop-blur-sm rounded-xl z-10">
+                            <div className="text-center">
+                                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mb-4"></div>
+                                <p className="text-sm text-dark-300">Rendering chart...</p>
+                            </div>
+                        </div>
+                    )}
                     {chartOption && (
                         <ReactECharts
                             ref={chartRef}
                             option={chartOption}
                             style={{ height: '100%', width: '100%' }}
                             opts={{ renderer: 'canvas' }}
-                            onEvents={onEvents}
-                            notMerge={true}
+                            notMerge={false}
                         />
                     )}
                 </div>

@@ -11,6 +11,8 @@ export enum ChartType {
     SCATTER = 'scatter',
     LINE = 'line',
     BAR = 'bar',
+    HISTOGRAM = 'histogram',
+    BOXPLOT = 'boxplot',
 }
 
 // 컬럼 정보 인터페이스

@@ -17,6 +17,11 @@ interface DataState {
     progress: number;
     error: string | null;
 
+    // 필터 및 옵션
+    filterRange: { min: number; max: number } | null;
+    binCount: number;
+    boxPlotMaxCategories: number;
+
     // 액션
     setData: (data: any[][], columns: ColumnInfo[], fileInfo: FileInfo) => void;
     initData: (columns: ColumnInfo[], fileInfo: FileInfo) => void;
@@ -29,6 +34,9 @@ interface DataState {
     setLoading: (loading: boolean) => void;
     setProgress: (progress: number) => void;
     setError: (error: string | null) => void;
+    setFilterRange: (range: { min: number; max: number } | null) => void;
+    setBinCount: (count: number) => void;
+    setBoxPlotMaxCategories: (count: number) => void;
     reset: () => void;
 }
 
@@ -43,6 +51,9 @@ export const useDataStore = create<DataState>((set) => ({
     isLoading: false,
     progress: 0,
     error: null,
+    filterRange: null,
+    binCount: 20,
+    boxPlotMaxCategories: 5,
 
     // 액션 구현
     setData: (data, columns, fileInfo) => set({
@@ -93,6 +104,12 @@ export const useDataStore = create<DataState>((set) => ({
 
     setError: (error) => set({ error, isLoading: false }),
 
+    setFilterRange: (range) => set({ filterRange: range }),
+
+    setBinCount: (count) => set({ binCount: count }),
+
+    setBoxPlotMaxCategories: (count) => set({ boxPlotMaxCategories: count }),
+
     reset: () => set({
         rawData: [],
         columns: [],
@@ -103,5 +120,8 @@ export const useDataStore = create<DataState>((set) => ({
         isLoading: false,
         progress: 0,
         error: null,
+        filterRange: null,
+        binCount: 20,
+        boxPlotMaxCategories: 5,
     }),
 }));

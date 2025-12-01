@@ -3,3 +3,4 @@ Slider가 움직임에 따라서 Chart의 loading 창이안뜨고잇음
 체크박스를 둘다 체크하면 둘다 뜨지 않음 
 
 boxplot도 점진적 redering 되었나? 
+

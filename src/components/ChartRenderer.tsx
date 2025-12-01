@@ -630,6 +630,7 @@ const ChartRenderer: React.FC = () => {
                     )}
                     {chartOption && (
                         <ReactECharts
+                            key={selectedYColumns.join(',')}
                             ref={chartRef}
                             option={chartOption}
                             style={{ height: '100%', width: '100%' }}

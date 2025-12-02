@@ -28,6 +28,7 @@ const ChartRenderer: React.FC = () => {
         filterRange,
         binCount,
         boxPlotMaxCategories,
+        yAxisAssignment,
     } = useDataStore();
 
     // 차트 데이터 준비
@@ -293,66 +294,35 @@ const ChartRenderer: React.FC = () => {
                 min: 'dataMin', // 축 범위 자동 조정
                 max: 'dataMax',
             },
-            yAxis: {
-                type: 'value',
-                name: selectedYColumns.length > 1 ? 'Value' : selectedYColumns[0],
-                nameLocation: 'middle',
-                nameGap: 50,
-                nameTextStyle: {
-                    color: '#cbd5e1',
-                    fontSize: 14,
-                    fontWeight: 'bold',
-                },
-                axisLine: {
-                    lineStyle: {
-                        color: '#475569',
-                    },
-                },
-                axisLabel: {
-                    color: '#94a3b8',
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: '#334155',
-                        type: 'dashed',
-                    },
-                },
-                min: 'dataMin',
-                max: 'dataMax',
-            },
-            dataZoom: [
+            // Multi Y-Axis Configuration
+            yAxis: [
                 {
-                    type: 'inside',
-                    xAxisIndex: 0,
-                    filterMode: 'empty',
+                    type: 'value',
+                    name: 'Left Axis',
+                    position: 'left',
+                    nameTextStyle: { color: '#cbd5e1' },
+                    axisLine: { show: true, lineStyle: { color: '#5470c6' } },
+                    axisLabel: { color: '#94a3b8' },
+                    splitLine: { lineStyle: { color: '#334155', type: 'dashed' } }
                 },
                 {
-                    type: 'slider',
-                    xAxisIndex: 0,
-                    filterMode: 'empty',
-                    height: 20,
-                    bottom: 10,
-                    handleIcon: 'path://M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
-                    handleSize: '80%',
-                    handleStyle: {
-                        color: '#fff',
-                        shadowBlur: 3,
-                        shadowColor: 'rgba(0, 0, 0, 0.6)',
-                        shadowOffsetX: 2,
-                        shadowOffsetY: 2
-                    },
-                    textStyle: {
-                        color: '#cbd5e1'
-                    },
-                    borderColor: '#475569',
-                },
-                {
-                    type: 'inside',
-                    yAxisIndex: 0,
-                    filterMode: 'empty',
-                },
+                    type: 'value',
+                    name: 'Right Axis',
+                    position: 'right',
+                    nameTextStyle: { color: '#cbd5e1' },
+                    axisLine: { show: true, lineStyle: { color: '#91cc75' } },
+                    axisLabel: { color: '#94a3b8' },
+                    splitLine: { show: false }
+                }
             ],
-            animation: false, // 대용량 데이터 렌더링 시 애니메이션 끄기 권장
+            dataZoom: [
+                { type: 'inside', xAxisIndex: 0, filterMode: 'empty' },
+                { type: 'slider', xAxisIndex: 0, filterMode: 'empty', height: 20, bottom: 10, borderColor: '#475569' },
+                { type: 'inside', yAxisIndex: [0, 1], filterMode: 'empty' }, // Zoom both axes
+                { type: 'slider', yAxisIndex: 0, filterMode: 'empty', left: 10, width: 20, borderColor: '#475569' }, // Left axis slider
+                { type: 'slider', yAxisIndex: 1, filterMode: 'empty', right: 10, width: 20, borderColor: '#475569' } // Right axis slider
+            ],
+            animation: false,
         };
 
         // 히스토그램 옵션
@@ -446,6 +416,7 @@ const ChartRenderer: React.FC = () => {
         // 각 Y 컬럼마다 시리즈 생성
         const seriesList = chartData.series.map((seriesInfo: any) => {
             const seriesData = seriesInfo.data.map((point: ChartDataPoint) => [point.x, point.y]);
+            const axisIndex = yAxisAssignment[seriesInfo.name] ?? 0; // 0: Left, 1: Right
 
             const markPointConfig = {
                 data: [
@@ -470,13 +441,18 @@ const ChartRenderer: React.FC = () => {
                 }
             };
 
-            let seriesConfig: any;
+            let seriesConfig: any = {
+                name: seriesInfo.name,
+                data: seriesData,
+                yAxisIndex: axisIndex, // Assign to correct Y-axis
+                markPoint: markPointConfig,
+            };
+
             switch (chartType) {
                 case ChartType.SCATTER:
                     seriesConfig = {
-                        name: seriesInfo.name,
+                        ...seriesConfig,
                         type: 'scatter',
-                        data: seriesData,
                         symbolSize: 6,
                         itemStyle: {
                             color: seriesInfo.color,
@@ -484,15 +460,13 @@ const ChartRenderer: React.FC = () => {
                         },
                         large: true,
                         largeThreshold: 2000,
-                        markPoint: markPointConfig,
                     };
                     break;
 
                 case ChartType.LINE:
                     seriesConfig = {
-                        name: seriesInfo.name,
+                        ...seriesConfig,
                         type: 'line',
-                        data: seriesData,
                         smooth: true,
                         lineStyle: {
                             color: seriesInfo.color,
@@ -503,30 +477,25 @@ const ChartRenderer: React.FC = () => {
                         },
                         symbol: 'none',
                         sampling: 'lttb',
-                        markPoint: markPointConfig,
                     };
                     break;
 
                 case ChartType.BAR:
                     seriesConfig = {
-                        name: seriesInfo.name,
+                        ...seriesConfig,
                         type: 'bar',
-                        data: seriesData,
                         itemStyle: {
                             color: seriesInfo.color,
                             borderRadius: [4, 4, 0, 0],
                         },
                         large: true,
-                        markPoint: markPointConfig,
                     };
                     break;
 
                 default:
                     seriesConfig = {
-                        name: seriesInfo.name,
+                        ...seriesConfig,
                         type: 'scatter',
-                        data: seriesData,
-                        markPoint: markPointConfig,
                     };
             }
 
@@ -537,7 +506,7 @@ const ChartRenderer: React.FC = () => {
             ...baseOption,
             series: seriesList,
         };
-    }, [chartData, chartType, selectedXColumn, selectedYColumns]);
+    }, [chartData, chartType, selectedXColumn, selectedYColumns, yAxisAssignment]);
 
     // 윈도우 리사이즈 시 차트 크기 조정
     useEffect(() => {

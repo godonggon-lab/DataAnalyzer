@@ -21,6 +21,7 @@ interface DataState {
     filterRange: { min: number; max: number } | null;
     binCount: number;
     boxPlotMaxCategories: number;
+    yAxisAssignment: { [columnName: string]: 0 | 1 }; // 0 = left, 1 = right
 
     // 액션
     setData: (data: any[][], columns: ColumnInfo[], fileInfo: FileInfo) => void;
@@ -37,6 +38,7 @@ interface DataState {
     setFilterRange: (range: { min: number; max: number } | null) => void;
     setBinCount: (count: number) => void;
     setBoxPlotMaxCategories: (count: number) => void;
+    setYAxisAssignment: (columnName: string, axisIndex: 0 | 1) => void;
     reset: () => void;
 }
 
@@ -54,6 +56,7 @@ export const useDataStore = create<DataState>((set) => ({
     filterRange: null,
     binCount: 20,
     boxPlotMaxCategories: 5,
+    yAxisAssignment: {},
 
     // 액션 구현
     setData: (data, columns, fileInfo) => set({
@@ -88,11 +91,24 @@ export const useDataStore = create<DataState>((set) => ({
     setSelectedYColumns: (columns) => set({ selectedYColumns: columns }),
 
     toggleYColumn: (columnName) => set((state) => {
-        const isSelected = state.selectedYColumns.includes(columnName);
+        const isCurrentlySelected = state.selectedYColumns.includes(columnName);
+        const newYColumns = isCurrentlySelected
+            ? state.selectedYColumns.filter(c => c !== columnName)
+            : [...state.selectedYColumns, columnName];
+
+        // Update yAxisAssignment
+        const newAssignment = { ...state.yAxisAssignment };
+        if (!isCurrentlySelected) {
+            // Adding new column - assign to left axis (0) by default
+            newAssignment[columnName] = 0;
+        } else {
+            // Removing column - clean up assignment
+            delete newAssignment[columnName];
+        }
+
         return {
-            selectedYColumns: isSelected
-                ? state.selectedYColumns.filter(col => col !== columnName)
-                : [...state.selectedYColumns, columnName]
+            selectedYColumns: newYColumns,
+            yAxisAssignment: newAssignment
         };
     }),
 
@@ -110,6 +126,13 @@ export const useDataStore = create<DataState>((set) => ({
 
     setBoxPlotMaxCategories: (count) => set({ boxPlotMaxCategories: count }),
 
+    setYAxisAssignment: (columnName, axisIndex) => set((state) => ({
+        yAxisAssignment: {
+            ...state.yAxisAssignment,
+            [columnName]: axisIndex
+        }
+    })),
+
     reset: () => set({
         rawData: [],
         columns: [],
@@ -123,5 +146,6 @@ export const useDataStore = create<DataState>((set) => ({
         filterRange: null,
         binCount: 20,
         boxPlotMaxCategories: 5,
+        yAxisAssignment: {},
     }),
 }));

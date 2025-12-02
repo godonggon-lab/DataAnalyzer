@@ -22,12 +22,14 @@ const ColumnSelector: React.FC = () => {
         filterRange,
         binCount,
         boxPlotMaxCategories,
+        yAxisAssignment,
         setSelectedXColumn,
         toggleYColumn,
         setChartType,
         setFilterRange,
         setBinCount,
         setBoxPlotMaxCategories,
+        setYAxisAssignment,
     } = useDataStore();
 
     // 로컬 입력 상태 (입력 중 끊김 방지)
@@ -226,6 +228,7 @@ const ColumnSelector: React.FC = () => {
                                 const isSelected = selectedYColumns.includes(col.name);
                                 const colorIndex = selectedYColumns.indexOf(col.name);
                                 const seriesColor = colorIndex >= 0 ? seriesColors[colorIndex % seriesColors.length] : seriesColors[index % seriesColors.length];
+                                const axisIndex = yAxisAssignment[col.name] ?? 0; // Default to left (0)
 
                                 return (
                                     <label
@@ -241,22 +244,51 @@ const ColumnSelector: React.FC = () => {
                                             onChange={() => toggleYColumn(col.name)}
                                             className="w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
                                         />
-                                        <div className="flex-1 flex items-center ml-3">
-                                            {getTypeIcon(col.type)}
-                                            <span className="ml-2 text-white text-sm">
-                                                {col.name}
-                                            </span>
-                                            <span className="ml-2 text-xs text-dark-400">
-                                                ({col.type})
-                                            </span>
+                                        <div className="flex-1 flex items-center justify-between ml-2">
+                                            <div className="flex items-center">
+                                                <span
+                                                    className="w-3 h-3 rounded-full mr-2"
+                                                    style={{ backgroundColor: isSelected ? seriesColor : '#64748b' }}
+                                                ></span>
+                                                <span className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-dark-300'}`}>
+                                                    {col.name}
+                                                </span>
+                                            </div>
+
+                                            {/* L/R Toggle Button */}
+                                            {isSelected && (
+                                                <div className="flex items-center gap-1 ml-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setYAxisAssignment(col.name, 0);
+                                                        }}
+                                                        className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 0
+                                                                ? 'bg-blue-500 text-white'
+                                                                : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
+                                                            }`}
+                                                        title="Left Axis"
+                                                    >
+                                                        L
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setYAxisAssignment(col.name, 1);
+                                                        }}
+                                                        className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 1
+                                                                ? 'bg-orange-500 text-white'
+                                                                : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
+                                                            }`}
+                                                        title="Right Axis"
+                                                    >
+                                                        R
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
-                                        {isSelected && (
-                                            <div
-                                                className="w-4 h-4 rounded-full ml-2"
-                                                style={{ backgroundColor: seriesColor }}
-                                                title="시리즈 색상"
-                                            />
-                                        )}
                                     </label>
                                 );
                             })}
@@ -398,7 +430,7 @@ const ColumnSelector: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

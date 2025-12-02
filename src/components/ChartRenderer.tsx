@@ -31,151 +31,154 @@ const ChartRenderer: React.FC = () => {
         yAxisAssignment,
     } = useDataStore();
 
-    // 차트 데이터 준비
-    const chartData = useMemo(() => {
-        if (selectedYColumns.length === 0 || rawData.length === 0) {
-            return null;
-        }
+    const [chartData, setChartData] = useState<any>(null);
 
-        // 히스토그램 처리
-        if (chartType === ChartType.HISTOGRAM) {
-            const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
-            if (yIndex === -1) return null;
-
-            const values = rawData
-                .map(row => toNumber(row[yIndex]))
-                .filter(v => {
-                    if (isNaN(v) || !isFinite(v)) return false;
-                    if (filterRange) {
-                        return v >= filterRange.min && v <= filterRange.max;
-                    }
-                    return true;
-                });
-            const { bins, counts } = calculateHistogram(values, binCount);
-
-            return {
-                type: 'histogram',
-                xAxisData: bins,
-                series: [{
-                    name: selectedYColumns[0],
-                    data: counts,
-                    color: seriesColors[0]
-                }],
-                original: values.length,
-                sampled: values.length, // 히스토그램은 샘플링 없음
-                isXAxisTime: false
-            };
-        }
-
-        // 박스플롯 처리
-        if (chartType === ChartType.BOXPLOT) {
-            const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
-            if (yIndex === -1) return null;
-
-            const yValues = rawData.map(row => toNumber(row[yIndex]));
-
-            let axisData: string[] = [];
-            let boxData: number[][] = [];
-
-            // X축이 선택된 경우 (그룹별 박스플롯)
-            if (selectedXColumn) {
-                const xIndex = columns.findIndex(c => c.name === selectedXColumn);
-                if (xIndex !== -1) {
-                    const xValues = rawData.map(row => row[xIndex]);
-                    const result = groupDataForBoxPlot(xValues, yValues, boxPlotMaxCategories);
-                    axisData = result.axisData;
-                    boxData = result.boxData;
-                }
-            }
-            // X축이 없는 경우 (단일 박스플롯)
-            else {
-                axisData = [selectedYColumns[0]];
-                boxData = [calculateBoxPlotStats(yValues.filter(v => !isNaN(v) && isFinite(v)))];
-            }
-
-            return {
-                type: 'boxplot',
-                xAxisData: axisData,
-                series: [{
-                    name: selectedYColumns[0],
-                    data: boxData,
-                    color: seriesColors[0]
-                }],
-                original: rawData.length,
-                sampled: rawData.length,
-                isXAxisTime: false
-            };
-        }
-
-        // 기존 차트 (Scatter, Line, Bar)
-        if (!selectedXColumn) return null;
-
-        const xIndex = columns.findIndex(c => c.name === selectedXColumn);
-        if (xIndex === -1) return null;
-
-        // X축 컬럼 타입 확인
-        const xColumn = columns.find(c => c.name === selectedXColumn);
-        const isXAxisTime = xColumn?.type === 'datetime';
-
-        // 각 Y컬럼마다 시리즈 생성
-        const seriesDataList = selectedYColumns.map((yColumnName, seriesIndex) => {
-            const yIndex = columns.findIndex(c => c.name === yColumnName);
-            if (yIndex === -1) return null;
-
-            const dataPoints: ChartDataPoint[] = [];
-
-            for (const row of rawData) {
-                let xValue: number;
-                if (isXAxisTime) {
-                    const val = row[xIndex];
-                    xValue = new Date(val).getTime();
-                } else {
-                    xValue = toNumber(row[xIndex]);
-                }
-                const yValue = toNumber(row[yIndex]);
-
-                if (!isNaN(xValue) && !isNaN(yValue) && isFinite(xValue) && isFinite(yValue)) {
-                    // 필터링 적용 (X축 기준)
-                    if (filterRange) {
-                        if (xValue < filterRange.min || xValue > filterRange.max) {
-                            continue;
-                        }
-                    }
-                    dataPoints.push({ x: xValue, y: yValue });
-                }
-            }
-
-            const sampledData = downsampleData(dataPoints, 300000);
-
-            return {
-                name: yColumnName,
-                data: sampledData,
-                originalCount: dataPoints.length,
-                sampledCount: sampledData.length,
-                color: seriesColors[seriesIndex % seriesColors.length],
-            };
-        }).filter(series => series !== null);
-
-        const totalOriginal = seriesDataList.reduce((sum, s) => sum + (s?.originalCount || 0), 0);
-        const totalSampled = seriesDataList.reduce((sum, s) => sum + (s?.sampledCount || 0), 0);
-
-        return {
-            type: 'basic',
-            series: seriesDataList,
-            original: totalOriginal,
-            sampled: totalSampled,
-            isXAxisTime,
-        }
-    }, [rawData, columns, selectedXColumn, selectedYColumns, chartType, filterRange, binCount, boxPlotMaxCategories]);
-
-    // 차트 데이터 로딩 상태 추적
+    // 차트 데이터 계산 및 로딩 상태 관리
     useEffect(() => {
         setIsChartLoading(true);
+
+        // UI가 렌더링될 시간을 주기 위해 setTimeout 사용
         const timer = setTimeout(() => {
+            if (selectedYColumns.length === 0 || rawData.length === 0) {
+                setChartData(null);
+                setIsChartLoading(false);
+                return;
+            }
+
+            let result = null;
+
+            // 히스토그램 처리
+            if (chartType === ChartType.HISTOGRAM) {
+                const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
+                if (yIndex !== -1) {
+                    const values = rawData
+                        .map(row => toNumber(row[yIndex]))
+                        .filter(v => {
+                            if (isNaN(v) || !isFinite(v)) return false;
+                            if (filterRange) {
+                                return v >= filterRange.min && v <= filterRange.max;
+                            }
+                            return true;
+                        });
+                    const { bins, counts } = calculateHistogram(values, binCount);
+
+                    result = {
+                        type: 'histogram',
+                        xAxisData: bins,
+                        series: [{
+                            name: selectedYColumns[0],
+                            data: counts,
+                            color: seriesColors[0]
+                        }],
+                        original: values.length,
+                        sampled: values.length, // 히스토그램은 샘플링 없음
+                        isXAxisTime: false
+                    };
+                }
+            }
+            // 박스플롯 처리
+            else if (chartType === ChartType.BOXPLOT) {
+                const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
+                if (yIndex !== -1) {
+                    const yValues = rawData.map(row => toNumber(row[yIndex]));
+                    let axisData: string[] = [];
+                    let boxData: number[][] = [];
+
+                    // X축이 선택된 경우 (그룹별 박스플롯)
+                    if (selectedXColumn) {
+                        const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+                        if (xIndex !== -1) {
+                            const xValues = rawData.map(row => row[xIndex]);
+                            const groupResult = groupDataForBoxPlot(xValues, yValues, boxPlotMaxCategories);
+                            axisData = groupResult.axisData;
+                            boxData = groupResult.boxData;
+                        }
+                    }
+                    // X축이 없는 경우 (단일 박스플롯)
+                    else {
+                        axisData = [selectedYColumns[0]];
+                        boxData = [calculateBoxPlotStats(yValues.filter(v => !isNaN(v) && isFinite(v)))];
+                    }
+
+                    result = {
+                        type: 'boxplot',
+                        xAxisData: axisData,
+                        series: [{
+                            name: selectedYColumns[0],
+                            data: boxData,
+                            color: seriesColors[0]
+                        }],
+                        original: rawData.length,
+                        sampled: rawData.length,
+                        isXAxisTime: false
+                    };
+                }
+            }
+            // 기존 차트 (Scatter, Line, Bar)
+            else if (selectedXColumn) {
+                const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+                if (xIndex !== -1) {
+                    const xColumn = columns.find(c => c.name === selectedXColumn);
+                    const isXAxisTime = xColumn?.type === 'datetime';
+
+                    // 각 Y컬럼마다 시리즈 생성
+                    const seriesDataList = selectedYColumns.map((yColumnName, seriesIndex) => {
+                        const yIndex = columns.findIndex(c => c.name === yColumnName);
+                        if (yIndex === -1) return null;
+
+                        const dataPoints: ChartDataPoint[] = [];
+
+                        for (const row of rawData) {
+                            let xValue: number;
+                            if (isXAxisTime) {
+                                const val = row[xIndex];
+                                xValue = new Date(val).getTime();
+                            } else {
+                                xValue = toNumber(row[xIndex]);
+                            }
+                            const yValue = toNumber(row[yIndex]);
+
+                            if (!isNaN(xValue) && !isNaN(yValue) && isFinite(xValue) && isFinite(yValue)) {
+                                // 필터링 적용 (X축 기준)
+                                if (filterRange) {
+                                    if (xValue < filterRange.min || xValue > filterRange.max) {
+                                        continue;
+                                    }
+                                }
+                                dataPoints.push({ x: xValue, y: yValue });
+                            }
+                        }
+
+                        const sampledData = downsampleData(dataPoints, 300000);
+
+                        return {
+                            name: yColumnName,
+                            data: sampledData,
+                            originalCount: dataPoints.length,
+                            sampledCount: sampledData.length,
+                            color: seriesColors[seriesIndex % seriesColors.length],
+                        };
+                    }).filter(series => series !== null);
+
+                    const totalOriginal = seriesDataList.reduce((sum, s) => sum + (s?.originalCount || 0), 0);
+                    const totalSampled = seriesDataList.reduce((sum, s) => sum + (s?.sampledCount || 0), 0);
+
+                    result = {
+                        type: 'basic',
+                        series: seriesDataList,
+                        original: totalOriginal,
+                        sampled: totalSampled,
+                        isXAxisTime,
+                    };
+                }
+            }
+
+            setChartData(result);
             setIsChartLoading(false);
         }, 100);
+
         return () => clearTimeout(timer);
-    }, [chartData]);
+    }, [rawData, columns, selectedXColumn, selectedYColumns, chartType, filterRange, binCount, boxPlotMaxCategories, yAxisAssignment]);
 
     // ECharts 옵션 생성
     const chartOption = useMemo(() => {

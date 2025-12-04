@@ -78,35 +78,61 @@ const ChartRenderer: React.FC = () => {
             }
             // 박스플롯 처리
             else if (chartType === ChartType.BOXPLOT) {
-                const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
-                if (yIndex !== -1) {
-                    const yValues = rawData.map(row => toNumber(row[yIndex]));
-                    let axisData: string[] = [];
-                    let boxData: number[][] = [];
+                // X축이 선택된 경우 (그룹별 박스플롯 - Multi Series)
+                if (selectedXColumn) {
+                    const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+                    if (xIndex !== -1) {
+                        const xValues = rawData.map(row => row[xIndex]);
+                        // 첫 번째 Y컬럼으로 X축 카테고리(axisData)를 먼저 구함 (모든 시리즈가 공유)
+                        // 주의: 모든 Y컬럼에 대해 동일한 X값들이 있다고 가정
+                        const yIndex0 = columns.findIndex(c => c.name === selectedYColumns[0]);
+                        const yValues0 = rawData.map(row => toNumber(row[yIndex0]));
+                        const { axisData } = groupDataForBoxPlot(xValues, yValues0, boxPlotMaxCategories);
 
-                    // X축이 선택된 경우 (그룹별 박스플롯)
-                    if (selectedXColumn) {
-                        const xIndex = columns.findIndex(c => c.name === selectedXColumn);
-                        if (xIndex !== -1) {
-                            const xValues = rawData.map(row => row[xIndex]);
-                            const groupResult = groupDataForBoxPlot(xValues, yValues, boxPlotMaxCategories);
-                            axisData = groupResult.axisData;
-                            boxData = groupResult.boxData;
+                        const seriesList = selectedYColumns.map((yColName, i) => {
+                            const yIdx = columns.findIndex(c => c.name === yColName);
+                            if (yIdx === -1) return null;
+                            const yVals = rawData.map(row => toNumber(row[yIdx]));
+                            const { boxData } = groupDataForBoxPlot(xValues, yVals, boxPlotMaxCategories);
+                            return {
+                                name: yColName,
+                                data: boxData,
+                                color: seriesColors[i % seriesColors.length]
+                            };
+                        }).filter(s => s !== null);
+
+                        result = {
+                            type: 'boxplot',
+                            xAxisData: axisData,
+                            series: seriesList,
+                            original: rawData.length,
+                            sampled: rawData.length,
+                            isXAxisTime: false
+                        };
+                    }
+                }
+                // X축이 없는 경우 (단일 박스플롯 - Single Series with Multiple Categories)
+                else {
+                    const boxDataList: number[][] = [];
+                    const axisData: string[] = [];
+
+                    selectedYColumns.forEach(yColName => {
+                        const yIndex = columns.findIndex(c => c.name === yColName);
+                        if (yIndex !== -1) {
+                            const yValues = rawData.map(row => toNumber(row[yIndex]));
+                            const stats = calculateBoxPlotStats(yValues.filter(v => !isNaN(v) && isFinite(v)));
+                            boxDataList.push(stats);
+                            axisData.push(yColName);
                         }
-                    }
-                    // X축이 없는 경우 (단일 박스플롯)
-                    else {
-                        axisData = [selectedYColumns[0]];
-                        boxData = [calculateBoxPlotStats(yValues.filter(v => !isNaN(v) && isFinite(v)))];
-                    }
+                    });
 
                     result = {
                         type: 'boxplot',
                         xAxisData: axisData,
                         series: [{
-                            name: selectedYColumns[0],
-                            data: boxData,
-                            color: seriesColors[0]
+                            name: 'Distribution',
+                            data: boxDataList,
+                            color: seriesColors[0] // 개별 색상은 option에서 처리
                         }],
                         original: rawData.length,
                         sampled: rawData.length,
@@ -371,13 +397,31 @@ const ChartRenderer: React.FC = () => {
 
         // 박스플롯 옵션
         if (chartData.type === 'boxplot') {
+            const boxPlotSeries = chartData.series.map((s: any) => ({
+                name: s.name,
+                type: 'boxplot',
+                data: s.data,
+                itemStyle: {
+                    color: selectedXColumn
+                        ? s.color
+                        : (params: any) => {
+                            const colors = [
+                                '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+                                '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#5470c6'
+                            ];
+                            return colors[params.dataIndex % colors.length];
+                        },
+                    borderColor: '#fff'
+                }
+            }));
+
             return {
                 ...baseOption,
                 tooltip: {
                     trigger: 'item',
                     formatter: (param: any) => {
                         return [
-                            `${param.name}: `,
+                            `${param.seriesName} - ${param.name}`,
                             `Max: ${param.data[5]}`,
                             `Q3: ${param.data[4]}`,
                             `Median: ${param.data[3]}`,
@@ -394,24 +438,9 @@ const ChartRenderer: React.FC = () => {
                 },
                 yAxis: {
                     type: 'value',
-                    name: selectedYColumns[0]
+                    name: selectedYColumns.length === 1 ? selectedYColumns[0] : 'Value'
                 },
-                series: [{
-                    name: chartData.series[0].name,
-                    type: 'boxplot',
-                    data: chartData.series[0].data,
-                    itemStyle: {
-                        // 각 카테고리마다 다른 색상 적용
-                        color: (params: any) => {
-                            const colors = [
-                                '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
-                                '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#5470c6'
-                            ];
-                            return colors[params.dataIndex % colors.length];
-                        },
-                        borderColor: '#fff'
-                    }
-                }]
+                series: boxPlotSeries
             };
         }
 
@@ -602,12 +631,12 @@ const ChartRenderer: React.FC = () => {
                     )}
                     {chartOption && (
                         <ReactECharts
-                            key={selectedYColumns.join(',')}
+                            key={`${chartType}-${selectedYColumns.join(',')}`}
                             ref={chartRef}
                             option={chartOption}
                             style={{ height: '100%', width: '100%' }}
                             opts={{ renderer: 'canvas' }}
-                            notMerge={false}
+                            notMerge={true}
                         />
                     )}
                 </div>

@@ -101,6 +101,26 @@ const ColumnSelector: React.FC = () => {
         setLocalBoxPlotMax(boxPlotMaxCategories);
     }, [boxPlotMaxCategories]);
 
+    // 히스토그램일 경우 Y축 다중 선택 제한 (하나만 선택 가능하도록)
+    useEffect(() => {
+        if (chartType === ChartType.HISTOGRAM && selectedYColumns.length > 1) {
+            // 첫 번째 선택만 남기고 나머지 제거 (직접 store action을 호출해야 함 - 여기서는 toggleYColumn을 여러번 호출하는 대신, 
+            // store에 setYColumns 같은게 없으므로, 사용자 경험을 위해 체크박스 disable로 막는 것이 우선이지만,
+            // 이미 선택된 상태에서 진입했을 때를 위해 처리 필요.
+            // 하지만 store 인터페이스 상 toggle만 있으므로, 여기서는 체크박스 disable 로직에 집중하고,
+            // 렌더링 시 첫번째만 사용하도록 ChartRenderer에서 처리하거나, 
+            // store에 setSelectedYColumns가 있다면 사용하는 것이 좋음.
+            // 현재 store에는 toggleYColumn만 있으므로, 여기서는 경고 메시지나 UI적 제한만 둠.
+            // *Store에 setSelectedYColumns가 없으므로, ChartRenderer에서 첫번째만 사용하도록 하고,
+            // 여기서는 추가 선택을 막는 것으로 처리.*
+            // (실제로는 store에 setSelectedYColumns를 추가하는 것이 가장 깔끔함. 
+            // 하지만 현재 주어진 도구로는 store 수정 없이 진행)
+
+            // 워크어라운드: toggle을 호출하여 해제? 복잡함.
+            // -> ChartRenderer에서 0번 인덱스만 사용하도록 수정 예정이므로 여기서는 UI disable만 처리.
+        }
+    }, [chartType, selectedYColumns]);
+
     // 입력 핸들러
     const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setLocalMin(e.target.value);
@@ -242,7 +262,9 @@ const ColumnSelector: React.FC = () => {
                                             type="checkbox"
                                             checked={isSelected}
                                             onChange={() => toggleYColumn(col.name)}
-                                            className="w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
+                                            disabled={chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected}
+                                            className={`w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 ${chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected ? 'opacity-50 cursor-not-allowed' : ''
+                                                }`}
                                         />
                                         <div className="flex-1 flex items-center justify-between ml-2">
                                             <div className="flex items-center">
@@ -255,8 +277,8 @@ const ColumnSelector: React.FC = () => {
                                                 </span>
                                             </div>
 
-                                            {/* L/R Toggle Button */}
-                                            {isSelected && (
+                                            {/* L/R Toggle Button - Hide for Histogram and BoxPlot */}
+                                            {isSelected && chartType !== ChartType.HISTOGRAM && chartType !== ChartType.BOXPLOT && (
                                                 <div className="flex items-center gap-1 ml-2">
                                                     <button
                                                         type="button"
@@ -265,8 +287,8 @@ const ColumnSelector: React.FC = () => {
                                                             setYAxisAssignment(col.name, 0);
                                                         }}
                                                         className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 0
-                                                                ? 'bg-blue-500 text-white'
-                                                                : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
+                                                            ? 'bg-blue-500 text-white'
+                                                            : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
                                                             }`}
                                                         title="Left Axis"
                                                     >
@@ -279,8 +301,8 @@ const ColumnSelector: React.FC = () => {
                                                             setYAxisAssignment(col.name, 1);
                                                         }}
                                                         className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 1
-                                                                ? 'bg-orange-500 text-white'
-                                                                : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
+                                                            ? 'bg-orange-500 text-white'
+                                                            : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
                                                             }`}
                                                         title="Right Axis"
                                                     >

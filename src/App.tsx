@@ -18,7 +18,7 @@ import NotFound from './pages/NotFound';
 
 function App() {
     return (
-        <BrowserRouter basename="/DataAnalyzer">
+        <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Home />} />

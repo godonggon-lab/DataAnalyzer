@@ -13,6 +13,7 @@ export enum ChartType {
     BAR = 'bar',
     HISTOGRAM = 'histogram',
     BOXPLOT = 'boxplot',
+    HEATMAP = 'heatmap',
 }
 
 // 컬럼 정보 인터페이스

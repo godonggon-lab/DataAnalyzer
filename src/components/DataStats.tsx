@@ -2,7 +2,7 @@ import React from 'react';
 import { useDataStore } from '../store/dataStore';
 
 const DataStats: React.FC = () => {
-    const { rawData, columns, fileInfo } = useDataStore();
+    const { rawData, processedData, columns, processedColumns, fileInfo } = useDataStore();
 
     if (!fileInfo || rawData.length === 0) {
         return null;
@@ -45,14 +45,24 @@ const DataStats: React.FC = () => {
                 <div className="bg-slate-100 dark:bg-dark-900/50 rounded-lg p-4">
                     <div className="text-slate-500 dark:text-dark-400 text-base mb-2">Total Rows</div>
                     <div className="text-slate-900 dark:text-white font-semibold text-base">
-                        {rawData.length.toLocaleString()}
+                        {processedData.length.toLocaleString()}
+                        {processedData.length !== rawData.length && (
+                            <span className="text-xs text-slate-500 dark:text-dark-400 ml-2 font-normal">
+                                (of {rawData.length.toLocaleString()})
+                            </span>
+                        )}
                     </div>
                 </div>
 
                 <div className="bg-slate-100 dark:bg-dark-900/50 rounded-lg p-4">
                     <div className="text-slate-500 dark:text-dark-400 text-base mb-2">Columns</div>
                     <div className="text-slate-900 dark:text-white font-semibold text-base">
-                        {columns.length}
+                        {processedColumns.length}
+                        {processedColumns.length !== columns.length && (
+                            <span className="text-xs text-slate-500 dark:text-dark-400 ml-2 font-normal">
+                                (of {columns.length})
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>

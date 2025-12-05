@@ -5,7 +5,7 @@ import { useThemeStore } from '../store/themeStore';
 import { ChartType, ChartDataPoint } from '../types';
 import { downsampleData } from '../utils/dataSampling';
 import { toNumber } from '../utils/typeInference';
-import { calculateHistogram, groupDataForBoxPlot, calculateBoxPlotStats } from '../utils/statistics';
+import { calculateHistogram, groupDataForBoxPlot, calculateBoxPlotStats, calculateCorrelationMatrix } from '../utils/statistics';
 
 // 시리즈 색상 팔레트
 const seriesColors = [
@@ -33,8 +33,8 @@ const ChartRenderer: React.FC = () => {
     }), [theme]);
 
     const {
-        rawData,
-        columns,
+        processedData,
+        processedColumns,
         selectedXColumn,
         selectedYColumns,
         chartType,
@@ -42,6 +42,7 @@ const ChartRenderer: React.FC = () => {
         binCount,
         boxPlotMaxCategories,
         yAxisAssignment,
+        selectedCorrelationColumns,
     } = useDataStore();
 
     const [chartData, setChartData] = useState<any>(null);
@@ -52,7 +53,8 @@ const ChartRenderer: React.FC = () => {
 
         // UI가 렌더링될 시간을 주기 위해 setTimeout 사용
         const timer = setTimeout(() => {
-            if (selectedYColumns.length === 0 || rawData.length === 0) {
+            if ((chartType !== ChartType.HEATMAP && (selectedYColumns.length === 0 || processedData.length === 0)) ||
+                (chartType === ChartType.HEATMAP && (selectedCorrelationColumns.length < 2 || processedData.length === 0))) {
                 setChartData(null);
                 setIsChartLoading(false);
                 return;
@@ -62,9 +64,9 @@ const ChartRenderer: React.FC = () => {
 
             // 히스토그램 처리
             if (chartType === ChartType.HISTOGRAM) {
-                const yIndex = columns.findIndex(c => c.name === selectedYColumns[0]);
+                const yIndex = processedColumns.findIndex(c => c.name === selectedYColumns[0]);
                 if (yIndex !== -1) {
-                    const values = rawData
+                    const values = processedData
                         .map(row => toNumber(row[yIndex]))
                         .filter(v => {
                             if (isNaN(v) || !isFinite(v)) return false;
@@ -93,19 +95,19 @@ const ChartRenderer: React.FC = () => {
             else if (chartType === ChartType.BOXPLOT) {
                 // X축이 선택된 경우 (그룹별 박스플롯 - Multi Series)
                 if (selectedXColumn) {
-                    const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+                    const xIndex = processedColumns.findIndex(c => c.name === selectedXColumn);
                     if (xIndex !== -1) {
-                        const xValues = rawData.map(row => row[xIndex]);
+                        const xValues = processedData.map(row => row[xIndex]);
                         // 첫 번째 Y컬럼으로 X축 카테고리(axisData)를 먼저 구함 (모든 시리즈가 공유)
                         // 주의: 모든 Y컬럼에 대해 동일한 X값들이 있다고 가정
-                        const yIndex0 = columns.findIndex(c => c.name === selectedYColumns[0]);
-                        const yValues0 = rawData.map(row => toNumber(row[yIndex0]));
+                        const yIndex0 = processedColumns.findIndex(c => c.name === selectedYColumns[0]);
+                        const yValues0 = processedData.map(row => toNumber(row[yIndex0]));
                         const { axisData } = groupDataForBoxPlot(xValues, yValues0, boxPlotMaxCategories);
 
                         const seriesList = selectedYColumns.map((yColName, i) => {
-                            const yIdx = columns.findIndex(c => c.name === yColName);
+                            const yIdx = processedColumns.findIndex(c => c.name === yColName);
                             if (yIdx === -1) return null;
-                            const yVals = rawData.map(row => toNumber(row[yIdx]));
+                            const yVals = processedData.map(row => toNumber(row[yIdx]));
                             const { boxData } = groupDataForBoxPlot(xValues, yVals, boxPlotMaxCategories);
                             return {
                                 name: yColName,
@@ -118,8 +120,8 @@ const ChartRenderer: React.FC = () => {
                             type: 'boxplot',
                             xAxisData: axisData,
                             series: seriesList,
-                            original: rawData.length,
-                            sampled: rawData.length,
+                            original: processedData.length,
+                            sampled: processedData.length,
                             isXAxisTime: false
                         };
                     }
@@ -130,9 +132,9 @@ const ChartRenderer: React.FC = () => {
                     const axisData: string[] = [];
 
                     selectedYColumns.forEach(yColName => {
-                        const yIndex = columns.findIndex(c => c.name === yColName);
+                        const yIndex = processedColumns.findIndex(c => c.name === yColName);
                         if (yIndex !== -1) {
-                            const yValues = rawData.map(row => toNumber(row[yIndex]));
+                            const yValues = processedData.map(row => toNumber(row[yIndex]));
                             const stats = calculateBoxPlotStats(yValues.filter(v => !isNaN(v) && isFinite(v)));
                             boxDataList.push(stats);
                             axisData.push(yColName);
@@ -147,27 +149,47 @@ const ChartRenderer: React.FC = () => {
                             data: boxDataList,
                             color: seriesColors[0] // 개별 색상은 option에서 처리
                         }],
-                        original: rawData.length,
-                        sampled: rawData.length,
+                        original: processedData.length,
+                        sampled: processedData.length,
+                        isXAxisTime: false
+                    };
+                }
+            }
+            // 상관관계 히트맵 처리
+            else if (chartType === ChartType.HEATMAP) {
+                if (selectedCorrelationColumns.length >= 2) {
+                    const matrixData = calculateCorrelationMatrix(processedData, selectedCorrelationColumns, processedColumns);
+
+                    result = {
+                        type: 'heatmap',
+                        xAxisData: selectedCorrelationColumns,
+                        yAxisData: selectedCorrelationColumns,
+                        series: [{
+                            name: 'Correlation',
+                            data: matrixData.map(item => [item.x, item.y, item.value]),
+                            label: { show: true }
+                        }],
+                        original: processedData.length,
+                        sampled: processedData.length,
                         isXAxisTime: false
                     };
                 }
             }
             // 기존 차트 (Scatter, Line, Bar)
             else if (selectedXColumn) {
-                const xIndex = columns.findIndex(c => c.name === selectedXColumn);
+                const xIndex = processedColumns.findIndex(c => c.name === selectedXColumn);
                 if (xIndex !== -1) {
-                    const xColumn = columns.find(c => c.name === selectedXColumn);
+                    const xColumn = processedColumns.find(c => c.name === selectedXColumn);
                     const isXAxisTime = xColumn?.type === 'datetime';
 
                     // 각 Y컬럼마다 시리즈 생성
                     const seriesDataList = selectedYColumns.map((yColumnName, seriesIndex) => {
-                        const yIndex = columns.findIndex(c => c.name === yColumnName);
+                        const yIndex = processedColumns.findIndex(c => c.name === yColumnName);
                         if (yIndex === -1) return null;
 
                         const dataPoints: ChartDataPoint[] = [];
 
-                        for (const row of rawData) {
+                        for (const row of processedData) {
                             let xValue: number;
                             if (isXAxisTime) {
                                 const val = row[xIndex];
@@ -217,8 +239,7 @@ const ChartRenderer: React.FC = () => {
         }, 100);
 
         return () => clearTimeout(timer);
-        return () => clearTimeout(timer);
-    }, [rawData, columns, selectedXColumn, selectedYColumns, chartType, filterRange, binCount, boxPlotMaxCategories, yAxisAssignment, theme]);
+    }, [processedData, processedColumns, selectedXColumn, selectedYColumns, selectedCorrelationColumns, chartType, filterRange, binCount, boxPlotMaxCategories, yAxisAssignment, theme]);
 
     // ECharts 옵션 생성
     const chartOption = useMemo(() => {
@@ -458,6 +479,70 @@ const ChartRenderer: React.FC = () => {
             };
         }
 
+        // 히트맵 옵션
+        if (chartData.type === 'heatmap') {
+            return {
+                ...baseOption,
+                tooltip: {
+                    position: 'top',
+                    formatter: (params: any) => {
+                        return `${params.value[0]} vs ${params.value[1]}<br/>Correlation: <strong>${params.value[2]}</strong>`;
+                    }
+                },
+                grid: {
+                    top: '10%',
+                    bottom: '15%',
+                    left: '10%',
+                    right: '10%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: chartData.xAxisData,
+                    splitArea: { show: true },
+                    axisLabel: { rotate: 45 }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: chartData.yAxisData,
+                    splitArea: { show: true }
+                },
+                visualMap: {
+                    min: -1,
+                    max: 1,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '0%',
+                    inRange: {
+                        color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+                    },
+                    textStyle: {
+                        color: themeColors.text
+                    }
+                },
+                series: [{
+                    name: 'Correlation',
+                    type: 'heatmap',
+                    data: chartData.series[0].data,
+                    label: {
+                        show: true,
+                        color: theme === 'dark' ? '#fff' : '#000'
+                    },
+                    itemStyle: {
+                        borderColor: themeColors.border,
+                        borderWidth: 1
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            };
+        }
+
         // 기존 차트 옵션 (Scatter, Line, Bar)
         // 각 Y 컬럼마다 시리즈 생성
         const seriesList = chartData.series.map((seriesInfo: any) => {
@@ -588,10 +673,12 @@ const ChartRenderer: React.FC = () => {
         };
     }, []);
 
-    // X축 선택이 없어도 되는 차트 타입(히스토그램, 박스플롯)은 예외 처리
-    const isSingleVariableChart = chartType === ChartType.HISTOGRAM || chartType === ChartType.BOXPLOT;
+    // X축 선택이 없어도 되는 차트 타입(히스토그램, 박스플롯, 히트맵)은 예외 처리
+    const isSingleVariableChart = chartType === ChartType.HISTOGRAM || chartType === ChartType.BOXPLOT || chartType === ChartType.HEATMAP;
 
-    if ((!selectedXColumn && !isSingleVariableChart) || selectedYColumns.length === 0) {
+    if ((!selectedXColumn && !isSingleVariableChart) ||
+        (chartType !== ChartType.HEATMAP && selectedYColumns.length === 0) ||
+        (chartType === ChartType.HEATMAP && selectedCorrelationColumns.length < 2)) {
         return (
             <div className="absolute inset-0 flex items-center justify-center p-12 text-center animate-slide-up">
                 <div>
@@ -662,6 +749,40 @@ const ChartRenderer: React.FC = () => {
                     />
                 )}
             </div>
+
+            {chartType === ChartType.HEATMAP && (
+                <div className="mt-4 p-4 bg-white/80 dark:bg-dark-800/80 backdrop-blur-sm rounded-xl border border-slate-200 dark:border-dark-700 shadow-sm animate-slide-up">
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Interpreting Correlation Coefficients (r)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div className="flex items-start p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-red-400 to-red-600 mt-0.5 mr-3 flex-shrink-0 shadow-sm"></div>
+                            <div>
+                                <strong className="block text-red-700 dark:text-red-300 mb-1">Positive (+1.0)</strong>
+                                <span className="text-slate-600 dark:text-dark-300">Strong relationship moving in the <strong>same direction</strong>.</span>
+                            </div>
+                        </div>
+                        <div className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 mt-0.5 mr-3 flex-shrink-0 shadow-sm"></div>
+                            <div>
+                                <strong className="block text-blue-700 dark:text-blue-300 mb-1">Negative (-1.0)</strong>
+                                <span className="text-slate-600 dark:text-dark-300">Strong relationship moving in <strong>opposite directions</strong>.</span>
+                            </div>
+                        </div>
+                        <div className="flex items-start p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 to-yellow-400 mt-0.5 mr-3 flex-shrink-0 shadow-sm"></div>
+                            <div>
+                                <strong className="block text-slate-700 dark:text-slate-300 mb-1">No Correlation (0)</strong>
+                                <span className="text-slate-600 dark:text-dark-300">Variables are likely <strong>independent</strong> of each other.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

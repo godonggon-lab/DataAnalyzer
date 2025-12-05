@@ -14,11 +14,11 @@ const seriesColors = [
 
 const ColumnSelector: React.FC = () => {
     const {
-        columns,
+        processedColumns: columns,
         selectedXColumn,
         selectedYColumns,
         chartType,
-        rawData,
+        processedData: rawData,
         filterRange,
         binCount,
         boxPlotMaxCategories,
@@ -30,6 +30,8 @@ const ColumnSelector: React.FC = () => {
         setBinCount,
         setBoxPlotMaxCategories,
         setYAxisAssignment,
+        selectedCorrelationColumns,
+        toggleCorrelationColumn,
     } = useDataStore();
 
     // 로컬 입력 상태 (입력 중 끊김 방지)
@@ -195,139 +197,197 @@ const ColumnSelector: React.FC = () => {
                 </h2>
 
                 <div className="grid grid-cols-1 gap-6">
-                    <div>
-                        <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
-                            X-Axis (Horizontal)
-                        </label>
-                        <select
-                            value={selectedXColumn || ''}
-                            onChange={(e) => setSelectedXColumn(e.target.value || null)}
-                            className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white text-base rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        >
-                            <option value="">Select...</option>
-                            {columns.map((col) => (
-                                <option key={col.name} value={col.name}>
-                                    {col.name} ({col.type})
-                                </option>
-                            ))}
-                        </select>
+                    {/* Heatmap Column Selection */}
+                    {chartType === ChartType.HEATMAP ? (
+                        <div>
+                            <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
+                                Select Columns for Correlation Matrix
+                                {selectedCorrelationColumns.length > 0 && (
+                                    <span className="ml-2 text-sm text-primary-500 dark:text-primary-400">
+                                        ({selectedCorrelationColumns.length} selected)
+                                    </span>
+                                )}
+                            </label>
 
-                        {selectedXColumn && xColumn && (
-                            <div className="mt-2 flex items-center text-base">
-                                {getTypeIcon(xColumn.type)}
-                                <span className={`ml-2 ${xColumnValid ? 'text-green-400' : 'text-yellow-400'}`}>
-                                    {xColumn.type}
-                                </span>
-                            </div>
-                        )}
+                            <div className="bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
+                                {numericColumns.map((col) => {
+                                    const isSelected = selectedCorrelationColumns.includes(col.name);
 
-                        {selectedXColumn && !xColumnValid && (
-                            <p className="mt-2 text-sm text-yellow-400 flex items-start">
-                                <svg className="w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                Recommended: Numeric or DateTime data
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
-                            Y-Axis (Vertical) - Multiple Selection
-                            {selectedYColumns.length > 0 && (
-                                <span className="ml-2 text-sm text-primary-500 dark:text-primary-400">
-                                    ({selectedYColumns.length} selected)
-                                </span>
-                            )}
-                        </label>
-
-                        <div className="bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
-                            {numericColumns.map((col, index) => {
-                                const isSelected = selectedYColumns.includes(col.name);
-                                const colorIndex = selectedYColumns.indexOf(col.name);
-                                const seriesColor = colorIndex >= 0 ? seriesColors[colorIndex % seriesColors.length] : seriesColors[index % seriesColors.length];
-                                const axisIndex = yAxisAssignment[col.name] ?? 0; // Default to left (0)
-
-                                return (
-                                    <label
-                                        key={col.name}
-                                        className={`flex items-center p-2 rounded-lg cursor-pointer transition-all ${isSelected
-                                            ? 'bg-slate-200 dark:bg-dark-600 border border-primary-500/50'
-                                            : 'hover:bg-slate-200/50 dark:hover:bg-dark-600/50'
-                                            }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={isSelected}
-                                            onChange={() => toggleYColumn(col.name)}
-                                            disabled={chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected}
-                                            className={`w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 ${chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected ? 'opacity-50 cursor-not-allowed' : ''
+                                    return (
+                                        <label
+                                            key={col.name}
+                                            className={`flex items-center p-2 rounded-lg cursor-pointer transition-all ${isSelected
+                                                ? 'bg-slate-200 dark:bg-dark-600 border border-primary-500/50'
+                                                : 'hover:bg-slate-200/50 dark:hover:bg-dark-600/50'
                                                 }`}
-                                        />
-                                        <div className="flex-1 flex items-center justify-between ml-2">
-                                            <div className="flex items-center">
-                                                <span
-                                                    className="w-3 h-3 rounded-full mr-2"
-                                                    style={{ backgroundColor: isSelected ? seriesColor : '#64748b' }}
-                                                ></span>
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => toggleCorrelationColumn(col.name)}
+                                                className="w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0"
+                                            />
+                                            <div className="flex-1 flex items-center ml-2">
                                                 <span className={`text-sm ${isSelected ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500 dark:text-dark-300'}`}>
                                                     {col.name}
                                                 </span>
                                             </div>
+                                        </label>
+                                    );
+                                })}
+                                {numericColumns.length === 0 && (
+                                    <p className="text-dark-400 text-sm text-center py-4">
+                                        No numeric columns available
+                                    </p>
+                                )}
+                            </div>
 
-                                            {/* L/R Toggle Button - Hide for Histogram and BoxPlot */}
-                                            {isSelected && chartType !== ChartType.HISTOGRAM && chartType !== ChartType.BOXPLOT && (
-                                                <div className="flex items-center gap-1 ml-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            setYAxisAssignment(col.name, 0);
-                                                        }}
-                                                        className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 0
-                                                            ? 'bg-blue-500 text-white'
-                                                            : 'bg-slate-300 dark:bg-dark-500 text-slate-600 dark:text-dark-300 hover:bg-slate-400 dark:hover:bg-dark-400'
-                                                            }`}
-                                                        title="Left Axis"
-                                                    >
-                                                        L
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            setYAxisAssignment(col.name, 1);
-                                                        }}
-                                                        className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 1
-                                                            ? 'bg-orange-500 text-white'
-                                                            : 'bg-slate-300 dark:bg-dark-500 text-slate-600 dark:text-dark-300 hover:bg-slate-400 dark:hover:bg-dark-400'
-                                                            }`}
-                                                        title="Right Axis"
-                                                    >
-                                                        R
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </label>
-                                );
-                            })}
-                            {numericColumns.length === 0 && (
-                                <p className="text-dark-400 text-sm text-center py-4">
-                                    No numeric columns available
+                            {selectedCorrelationColumns.length < 2 && (
+                                <p className="mt-2 text-xs text-yellow-400 flex items-start">
+                                    <svg className="w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Select at least 2 columns
                                 </p>
                             )}
                         </div>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
+                                    X-Axis (Horizontal)
+                                </label>
+                                <select
+                                    value={selectedXColumn || ''}
+                                    onChange={(e) => setSelectedXColumn(e.target.value || null)}
+                                    className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white text-base rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                                >
+                                    <option value="">Select...</option>
+                                    {columns.map((col) => (
+                                        <option key={col.name} value={col.name}>
+                                            {col.name} ({col.type})
+                                        </option>
+                                    ))}
+                                </select>
 
-                        {selectedYColumns.length === 0 && (
-                            <p className="mt-2 text-xs text-yellow-400 flex items-start">
-                                <svg className="w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                Select at least one Y-axis
-                            </p>
-                        )}
-                    </div>
+                                {selectedXColumn && xColumn && (
+                                    <div className="mt-2 flex items-center text-base">
+                                        {getTypeIcon(xColumn.type)}
+                                        <span className={`ml-2 ${xColumnValid ? 'text-green-400' : 'text-yellow-400'}`}>
+                                            {xColumn.type}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {selectedXColumn && !xColumnValid && (
+                                    <p className="mt-2 text-sm text-yellow-400 flex items-start">
+                                        <svg className="w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        Recommended: Numeric or DateTime data
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
+                                    Y-Axis (Vertical) - Multiple Selection
+                                    {selectedYColumns.length > 0 && (
+                                        <span className="ml-2 text-sm text-primary-500 dark:text-primary-400">
+                                            ({selectedYColumns.length} selected)
+                                        </span>
+                                    )}
+                                </label>
+
+                                <div className="bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
+                                    {numericColumns.map((col, index) => {
+                                        const isSelected = selectedYColumns.includes(col.name);
+                                        const colorIndex = selectedYColumns.indexOf(col.name);
+                                        const seriesColor = colorIndex >= 0 ? seriesColors[colorIndex % seriesColors.length] : seriesColors[index % seriesColors.length];
+                                        const axisIndex = yAxisAssignment[col.name] ?? 0; // Default to left (0)
+
+                                        return (
+                                            <label
+                                                key={col.name}
+                                                className={`flex items-center p-2 rounded-lg cursor-pointer transition-all ${isSelected
+                                                    ? 'bg-slate-200 dark:bg-dark-600 border border-primary-500/50'
+                                                    : 'hover:bg-slate-200/50 dark:hover:bg-dark-600/50'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleYColumn(col.name)}
+                                                    disabled={chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected}
+                                                    className={`w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 ${chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected ? 'opacity-50 cursor-not-allowed' : ''
+                                                        }`}
+                                                />
+                                                <div className="flex-1 flex items-center justify-between ml-2">
+                                                    <div className="flex items-center">
+                                                        <span
+                                                            className="w-3 h-3 rounded-full mr-2"
+                                                            style={{ backgroundColor: isSelected ? seriesColor : '#64748b' }}
+                                                        ></span>
+                                                        <span className={`text-sm ${isSelected ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500 dark:text-dark-300'}`}>
+                                                            {col.name}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* L/R Toggle Button - Hide for Histogram and BoxPlot */}
+                                                    {isSelected && chartType !== ChartType.HISTOGRAM && chartType !== ChartType.BOXPLOT && (
+                                                        <div className="flex items-center gap-1 ml-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    setYAxisAssignment(col.name, 0);
+                                                                }}
+                                                                className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 0
+                                                                    ? 'bg-blue-500 text-white'
+                                                                    : 'bg-slate-300 dark:bg-dark-500 text-slate-600 dark:text-dark-300 hover:bg-slate-400 dark:hover:bg-dark-400'
+                                                                    }`}
+                                                                title="Left Axis"
+                                                            >
+                                                                L
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    setYAxisAssignment(col.name, 1);
+                                                                }}
+                                                                className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 1
+                                                                    ? 'bg-orange-500 text-white'
+                                                                    : 'bg-slate-300 dark:bg-dark-500 text-slate-600 dark:text-dark-300 hover:bg-slate-400 dark:hover:bg-dark-400'
+                                                                    }`}
+                                                                title="Right Axis"
+                                                            >
+                                                                R
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                    {numericColumns.length === 0 && (
+                                        <p className="text-dark-400 text-sm text-center py-4">
+                                            No numeric columns available
+                                        </p>
+                                    )}
+                                </div>
+
+                                {selectedYColumns.length === 0 && (
+                                    <p className="mt-2 text-xs text-yellow-400 flex items-start">
+                                        <svg className="w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        Select at least one Y-axis
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     {/* 차트 타입 선택 */}
                     <div>
@@ -344,6 +404,7 @@ const ColumnSelector: React.FC = () => {
                             <option value={ChartType.BAR}>Bar Chart</option>
                             <option value={ChartType.HISTOGRAM}>Histogram</option>
                             <option value={ChartType.BOXPLOT}>Box Plot</option>
+                            <option value={ChartType.HEATMAP}>Correlation Heatmap</option>
                         </select>
 
                         <div className="mt-2 text-xs text-dark-400">
@@ -352,6 +413,7 @@ const ColumnSelector: React.FC = () => {
                             {chartType === ChartType.BAR && 'Display as bars'}
                             {chartType === ChartType.HISTOGRAM && 'Display frequency distribution (Y-axis data)'}
                             {chartType === ChartType.BOXPLOT && 'Display statistical distribution (Min, Q1, Median, Q3, Max)'}
+                            {chartType === ChartType.HEATMAP && 'Display correlation matrix between multiple numeric columns'}
                         </div>
                     </div>
                 </div>

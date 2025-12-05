@@ -1,15 +1,20 @@
 import { create } from 'zustand';
 import { ColumnInfo, ChartType, FileInfo } from '../types';
+import { Transformation, processData } from '../utils/transformations';
 
 interface DataState {
     // 데이터 상태
     rawData: any[][];
     columns: ColumnInfo[];
+    processedData: any[][]; // 변환된 데이터
+    processedColumns: ColumnInfo[]; // 변환된 컬럼 정보
+    transformations: Transformation[]; // 적용된 변환 목록
     fileInfo: FileInfo | null;
 
     // 선택된 컬럼
     selectedXColumn: string | null;
     selectedYColumns: string[]; // 다중 Y축 선택
+    selectedCorrelationColumns: string[]; // 상관관계 분석용 컬럼 선택
     chartType: ChartType;
 
     // UI 상태
@@ -31,6 +36,8 @@ interface DataState {
     setSelectedXColumn: (column: string | null) => void;
     setSelectedYColumns: (columns: string[]) => void;
     toggleYColumn: (columnName: string) => void;
+    setSelectedCorrelationColumns: (columns: string[]) => void;
+    toggleCorrelationColumn: (columnName: string) => void;
     setChartType: (type: ChartType) => void;
     setLoading: (loading: boolean) => void;
     setProgress: (progress: number) => void;
@@ -39,6 +46,12 @@ interface DataState {
     setBinCount: (count: number) => void;
     setBoxPlotMaxCategories: (count: number) => void;
     setYAxisAssignment: (columnName: string, axisIndex: 0 | 1) => void;
+
+    // 변환 액션
+    addTransformation: (transformation: Transformation) => void;
+    removeTransformation: (id: string) => void;
+    resetTransformations: () => void;
+
     reset: () => void;
 }
 
@@ -46,9 +59,13 @@ export const useDataStore = create<DataState>((set) => ({
     // 초기 상태
     rawData: [],
     columns: [],
+    processedData: [],
+    processedColumns: [],
+    transformations: [],
     fileInfo: null,
     selectedXColumn: null,
     selectedYColumns: [],
+    selectedCorrelationColumns: [],
     chartType: ChartType.SCATTER,
     isLoading: false,
     progress: 0,
@@ -62,6 +79,9 @@ export const useDataStore = create<DataState>((set) => ({
     setData: (data, columns, fileInfo) => set({
         rawData: data,
         columns,
+        processedData: data, // 초기에는 원본과 동일
+        processedColumns: columns,
+        transformations: [], // 새 데이터 로드 시 변환 초기화
         fileInfo,
         isLoading: false,
         progress: 100,
@@ -71,6 +91,9 @@ export const useDataStore = create<DataState>((set) => ({
     initData: (columns, fileInfo) => set({
         rawData: [],
         columns,
+        processedData: [],
+        processedColumns: columns,
+        transformations: [],
         fileInfo,
         isLoading: true,
         progress: 0,
@@ -79,6 +102,8 @@ export const useDataStore = create<DataState>((set) => ({
 
     appendData: (chunk) => set((state) => ({
         rawData: [...state.rawData, ...chunk],
+        // append 중에는 processedData도 같이 업데이트 (변환 없이)
+        processedData: [...state.processedData, ...chunk],
     })),
 
     finalizeData: () => set({
@@ -112,6 +137,17 @@ export const useDataStore = create<DataState>((set) => ({
         };
     }),
 
+    setSelectedCorrelationColumns: (columns) => set({ selectedCorrelationColumns: columns }),
+
+    toggleCorrelationColumn: (columnName) => set((state) => {
+        const isCurrentlySelected = state.selectedCorrelationColumns.includes(columnName);
+        return {
+            selectedCorrelationColumns: isCurrentlySelected
+                ? state.selectedCorrelationColumns.filter(c => c !== columnName)
+                : [...state.selectedCorrelationColumns, columnName]
+        };
+    }),
+
     setChartType: (type) => set({ chartType: type }),
 
     setLoading: (loading) => set({ isLoading: loading }),
@@ -133,12 +169,42 @@ export const useDataStore = create<DataState>((set) => ({
         }
     })),
 
+    addTransformation: (transformation) => set((state) => {
+        const newTransformations = [...state.transformations, transformation];
+        const { data, columns } = processData(state.rawData, state.columns, newTransformations);
+        return {
+            transformations: newTransformations,
+            processedData: data,
+            processedColumns: columns as ColumnInfo[], // Type assertion needed if ColumnInfo has extra fields
+        };
+    }),
+
+    removeTransformation: (id) => set((state) => {
+        const newTransformations = state.transformations.filter(t => t.id !== id);
+        const { data, columns } = processData(state.rawData, state.columns, newTransformations);
+        return {
+            transformations: newTransformations,
+            processedData: data,
+            processedColumns: columns as ColumnInfo[],
+        };
+    }),
+
+    resetTransformations: () => set((state) => ({
+        transformations: [],
+        processedData: state.rawData,
+        processedColumns: state.columns,
+    })),
+
     reset: () => set({
         rawData: [],
         columns: [],
+        processedData: [],
+        processedColumns: [],
+        transformations: [],
         fileInfo: null,
         selectedXColumn: null,
         selectedYColumns: [],
+        selectedCorrelationColumns: [],
         chartType: ChartType.SCATTER,
         isLoading: false,
         progress: 0,

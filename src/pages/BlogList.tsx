@@ -11,6 +11,14 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
     {
+        id: 'correlation-analysis',
+        title: 'Understanding Correlation Analysis: Uncovering Hidden Relationships',
+        description: 'Learn how to use correlation matrices to find patterns in your data and avoid common pitfalls.',
+        category: 'Data Science',
+        date: '2025-12-05',
+        readTime: '8 min',
+    },
+    {
         id: 'excel-data-analysis-guide',
         title: 'Excel 데이터 분석 완벽 가이드',
         description: 'Excel을 활용한 데이터 분석의 기초부터 고급 기법까지 완벽하게 마스터하세요.',

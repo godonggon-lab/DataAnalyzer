@@ -20,6 +20,15 @@ const tutorials = [
         icon: '⚡',
     },
     {
+        id: 'correlation-matrix',
+        title: 'Mastering the Correlation Matrix',
+        description: 'Step-by-step guide to using the new Correlation Matrix Heatmap feature.',
+        difficulty: 'Advanced',
+        duration: '10 min',
+        category: 'Advanced',
+        icon: '🔥',
+    },
+    {
         id: 'tips-and-tricks',
         title: 'Tips and Tricks',
         description: 'Discover hidden features, keyboard shortcuts, and best practices for data visualization.',

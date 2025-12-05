@@ -131,3 +131,86 @@ export const groupDataForBoxPlot = (xData: any[], yData: number[], maxCategories
         originalCount
     };
 };
+
+/**
+ * 피어슨 상관계수 계산
+ * @param x 숫자 배열 1
+ * @param y 숫자 배열 2
+ * @returns 상관계수 (-1 ~ 1)
+ */
+export const calculateCorrelation = (x: number[], y: number[]): number => {
+    const n = x.length;
+    if (n !== y.length || n === 0) return 0;
+
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumX2 = 0;
+    let sumY2 = 0;
+
+    for (let i = 0; i < n; i++) {
+        sumX += x[i];
+        sumY += y[i];
+        sumXY += x[i] * y[i];
+        sumX2 += x[i] * x[i];
+        sumY2 += y[i] * y[i];
+    }
+
+    const numerator = n * sumXY - sumX * sumY;
+    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+    if (denominator === 0) return 0;
+    return numerator / denominator;
+};
+
+/**
+ * 상관관계 매트릭스 계산
+ * @param data 원본 데이터 (행 배열)
+ * @param columns 분석할 컬럼명 배열
+ * @param allColumnsInfo 전체 컬럼 정보
+ * @returns ECharts Heatmap용 데이터 배열 [{x, y, value}]
+ */
+export const calculateCorrelationMatrix = (data: any[][], columns: string[], allColumnsInfo: any[]) => {
+    const matrix: { x: string; y: string; value: number }[] = [];
+    const n = columns.length;
+
+    // 컬럼별 데이터 추출 (미리 숫자형으로 변환)
+    const columnData: { [key: string]: number[] } = {};
+
+    columns.forEach(colName => {
+        const colIndex = allColumnsInfo.findIndex(c => c.name === colName);
+        if (colIndex === -1) return;
+
+        columnData[colName] = [];
+        for (let i = 0; i < data.length; i++) {
+            const val = Number(data[i][colIndex]);
+            if (!isNaN(val)) {
+                columnData[colName].push(val);
+            }
+        }
+    });
+
+    // 매트릭스 계산
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            const col1 = columns[i];
+            const col2 = columns[j];
+
+            const data1 = columnData[col1];
+            const data2 = columnData[col2];
+
+            // 데이터 길이가 다를 경우 (결측치 등으로 인해) 짧은 쪽에 맞춤
+            const len = Math.min(data1.length, data2.length);
+
+            const corr = calculateCorrelation(data1.slice(0, len), data2.slice(0, len));
+
+            matrix.push({
+                x: col1,
+                y: col2,
+                value: Number(corr.toFixed(2))
+            });
+        }
+    }
+
+    return matrix;
+};

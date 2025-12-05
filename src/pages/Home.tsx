@@ -4,19 +4,19 @@ const Home = () => {
     return (
         <div className="space-y-12">
             {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-500/10 via-primary-600/5 to-transparent border border-primary-500/20 p-12 text-center">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-500/10 via-primary-600/5 to-transparent border border-primary-500/20 p-6 md:p-10 lg:p-12 text-center">
                 <div className="relative z-10">
-                    <h1 className="text-6xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 md:mb-6 leading-tight">
                         Transform Your Data Into
-                        <span className="block bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+                        <span className="block bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent mt-2">
                             Beautiful Insights
                         </span>
                     </h1>
-                    <p className="text-xl text-slate-600 dark:text-dark-200 max-w-3xl mx-auto mb-8 leading-relaxed">
+                    <p className="text-base sm:text-lg text-slate-600 dark:text-dark-200 max-w-3xl mx-auto mb-6 md:mb-8 leading-relaxed px-4">
                         Upload Excel or CSV files and create stunning visualizations in seconds.
                         No installation, no coding required. Your data stays private in your browser.
                     </p>
-                    <div className="flex items-center justify-center gap-6 text-slate-500 dark:text-dark-300">
+                    <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-slate-500 dark:text-dark-300">
                         <div className="flex items-center gap-2">
                             <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

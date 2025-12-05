@@ -57,10 +57,10 @@ const Contact = () => {
                         Have a question or feedback? Send us an email and we'll get back to you as soon as possible.
                     </p>
                     <a
-                        href="mailto:contact@dataanalyzer.com"
+                        href="mailto:king022729@naver.com"
                         className="inline-flex items-center text-primary-400 hover:text-primary-300 text-sm"
                     >
-                        <span>contact@dataanalyzer.com</span>
+                        <span>king022729@naver.com</span>
                         <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>

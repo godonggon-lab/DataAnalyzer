@@ -37,6 +37,15 @@ const tutorials = [
         category: 'Tips',
         icon: '💡',
     },
+    {
+        id: 'data-transformation',
+        title: 'Data Transformation Guide',
+        description: 'Learn how to clean, filter, and shape your data using the Data Pipeline.',
+        difficulty: 'Intermediate',
+        duration: '10 min',
+        category: 'Data Prep',
+        icon: '🔧',
+    },
 ];
 
 const TutorialList = () => {

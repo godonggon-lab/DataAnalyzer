@@ -11,6 +11,7 @@ import TutorialList from './pages/TutorialList';
 import GettingStarted from './pages/tutorials/GettingStarted';
 import AdvancedFeatures from './pages/tutorials/AdvancedFeatures';
 import CorrelationTutorial from './pages/tutorials/CorrelationTutorial';
+import DataTransformationGuide from './pages/tutorials/DataTransformationGuide';
 import TipsAndTricks from './pages/tutorials/TipsAndTricks';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -32,6 +33,7 @@ function App() {
                     <Route path="tutorials/getting-started" element={<GettingStarted />} />
                     <Route path="tutorials/advanced-features" element={<AdvancedFeatures />} />
                     <Route path="tutorials/correlation-matrix" element={<CorrelationTutorial />} />
+                    <Route path="tutorials/data-transformation" element={<DataTransformationGuide />} />
                     <Route path="tutorials/tips-and-tricks" element={<TipsAndTricks />} />
                     <Route path="privacy-policy" element={<PrivacyPolicy />} />
                     <Route path="terms-of-service" element={<TermsOfService />} />

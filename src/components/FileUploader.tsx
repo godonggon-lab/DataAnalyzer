@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDataStore } from '../store/dataStore';
 import { WorkerMessage } from '../types';
 
 const FileUploader = () => {
     const [isDragging, setIsDragging] = useState(false);
     const { isLoading, progress, error, setData, setLoading, setProgress, setError } = useDataStore();
+    const navigate = useNavigate();
 
     const handleFile = useCallback(async (file: File) => {
         // 파일 형식 검증
@@ -73,6 +75,10 @@ const FileUploader = () => {
                         // 완료 처리
                         useDataStore.getState().finalizeData();
                         worker.terminate();
+                        // Navigate to workspace after successful upload
+                        setTimeout(() => {
+                            navigate('/workspace');
+                        }, 500);
                         break;
 
                     case 'error':
@@ -97,7 +103,7 @@ const FileUploader = () => {
             setError(error instanceof Error ? error.message : 'An error occurred while processing the file.');
             setLoading(false);
         }
-    }, [setData, setLoading, setProgress, setError]);
+    }, [setData, setLoading, setProgress, setError, navigate]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -140,7 +146,7 @@ const FileUploader = () => {
           transition-all duration-300 ease-in-out
           ${isDragging
                         ? 'border-primary-500 bg-primary-500/10 scale-105'
-                        : 'border-dark-600 bg-dark-800/50 hover:border-primary-600 hover:bg-dark-800/70'
+                        : 'border-slate-300 dark:border-dark-600 bg-white/50 dark:bg-dark-800/50 hover:border-primary-500 hover:bg-slate-50 dark:hover:bg-dark-800/70'
                     }
           ${isLoading ? 'pointer-events-none opacity-70' : 'cursor-pointer'}
           backdrop-blur-sm
@@ -150,7 +156,7 @@ const FileUploader = () => {
                     <>
                         <div className="mb-6">
                             <svg
-                                className={`mx-auto h-16 w-16 transition-transform duration-300 ${isDragging ? 'scale-110 text-primary-500' : 'text-dark-400'
+                                className={`mx-auto h-16 w-16 transition-transform duration-300 ${isDragging ? 'scale-110 text-primary-500' : 'text-slate-400 dark:text-dark-400'
                                     }`}
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -165,11 +171,11 @@ const FileUploader = () => {
                             </svg>
                         </div>
 
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                             Drag and drop or click to upload a file
                         </h3>
 
-                        <p className="text-dark-400 mb-6">
+                        <p className="text-slate-500 dark:text-dark-400 mb-6">
                             Supports CSV, XLSX, XLS files • No size limit
                         </p>
 
@@ -207,16 +213,16 @@ const FileUploader = () => {
                             </svg>
                         </div>
 
-                        <h3 className="text-xl font-semibold text-white">
+                        <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                             Processing file...
                         </h3>
 
                         <div className="w-full max-w-md mx-auto">
-                            <div className="flex justify-between text-sm text-dark-400 mb-2">
+                            <div className="flex justify-between text-sm text-slate-500 dark:text-dark-400 mb-2">
                                 <span>Progress</span>
                                 <span>{Math.round(progress)}%</span>
                             </div>
-                            <div className="w-full bg-dark-700 rounded-full h-3 overflow-hidden">
+                            <div className="w-full bg-slate-200 dark:bg-dark-700 rounded-full h-3 overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-primary-600 to-primary-400 transition-all duration-300 ease-out rounded-full"
                                     style={{ width: `${progress}%` }}

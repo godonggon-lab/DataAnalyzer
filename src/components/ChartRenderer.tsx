@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useDataStore } from '../store/dataStore';
+import { useThemeStore } from '../store/themeStore';
 import { ChartType, ChartDataPoint } from '../types';
 import { downsampleData } from '../utils/dataSampling';
 import { toNumber } from '../utils/typeInference';
@@ -18,6 +19,18 @@ const seriesColors = [
 const ChartRenderer: React.FC = () => {
     const chartRef = useRef<ReactECharts>(null);
     const [isChartLoading, setIsChartLoading] = useState(false);
+    const { theme } = useThemeStore();
+
+    // Theme-based colors
+    const themeColors = useMemo(() => ({
+        text: theme === 'dark' ? '#cbd5e1' : '#475569',
+        subText: theme === 'dark' ? '#94a3b8' : '#64748b',
+        border: theme === 'dark' ? '#475569' : '#cbd5e1',
+        splitLine: theme === 'dark' ? '#334155' : '#e2e8f0',
+        tooltipBg: theme === 'dark' ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+        tooltipText: theme === 'dark' ? '#e2e8f0' : '#1e293b',
+        tooltipBorder: theme === 'dark' ? '#475569' : '#e2e8f0',
+    }), [theme]);
 
     const {
         rawData,
@@ -204,7 +217,8 @@ const ChartRenderer: React.FC = () => {
         }, 100);
 
         return () => clearTimeout(timer);
-    }, [rawData, columns, selectedXColumn, selectedYColumns, chartType, filterRange, binCount, boxPlotMaxCategories, yAxisAssignment]);
+        return () => clearTimeout(timer);
+    }, [rawData, columns, selectedXColumn, selectedYColumns, chartType, filterRange, binCount, boxPlotMaxCategories, yAxisAssignment, theme]);
 
     // ECharts 옵션 생성
     const chartOption = useMemo(() => {
@@ -227,22 +241,22 @@ const ChartRenderer: React.FC = () => {
             legend: selectedYColumns.length > 1 ? {
                 top: '5%',
                 textStyle: {
-                    color: '#cbd5e1',
+                    color: themeColors.text,
                 },
                 icon: 'circle',
             } : undefined,
             tooltip: {
                 trigger: 'axis',
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                borderColor: '#475569',
+                backgroundColor: themeColors.tooltipBg,
+                borderColor: themeColors.tooltipBorder,
                 borderWidth: 1,
                 textStyle: {
-                    color: '#e2e8f0',
+                    color: themeColors.tooltipText,
                 },
                 axisPointer: {
                     type: chartType === ChartType.BAR ? 'shadow' : 'cross',
                     crossStyle: {
-                        color: '#64748b',
+                        color: themeColors.subText,
                     },
                 },
                 // 날짜 포맷팅
@@ -263,12 +277,12 @@ const ChartRenderer: React.FC = () => {
                     },
                     restore: {},
                     saveAsImage: {
-                        backgroundColor: '#0f172a',
+                        backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
                         name: 'chart',
                     },
                 },
                 iconStyle: {
-                    borderColor: '#64748b',
+                    borderColor: themeColors.subText,
                 },
                 emphasis: {
                     iconStyle: {
@@ -282,17 +296,17 @@ const ChartRenderer: React.FC = () => {
                 nameLocation: 'middle',
                 nameGap: 40,
                 nameTextStyle: {
-                    color: '#cbd5e1',
+                    color: themeColors.text,
                     fontSize: 14,
                     fontWeight: 'bold',
                 },
                 axisLine: {
                     lineStyle: {
-                        color: '#475569',
+                        color: themeColors.border,
                     },
                 },
                 axisLabel: {
-                    color: '#94a3b8',
+                    color: themeColors.subText,
                     hideOverlap: true, // 겹침 방지
                     formatter: chartData.isXAxisTime ? (value: number) => {
                         // DateTime 포맷 간소화
@@ -316,7 +330,7 @@ const ChartRenderer: React.FC = () => {
                 },
                 splitLine: {
                     lineStyle: {
-                        color: '#334155',
+                        color: themeColors.splitLine,
                         type: 'dashed',
                     },
                 },
@@ -329,27 +343,27 @@ const ChartRenderer: React.FC = () => {
                     type: 'value',
                     name: 'Left Axis',
                     position: 'left',
-                    nameTextStyle: { color: '#cbd5e1' },
+                    nameTextStyle: { color: themeColors.text },
                     axisLine: { show: true, lineStyle: { color: '#5470c6' } },
-                    axisLabel: { color: '#94a3b8' },
-                    splitLine: { lineStyle: { color: '#334155', type: 'dashed' } }
+                    axisLabel: { color: themeColors.subText },
+                    splitLine: { lineStyle: { color: themeColors.splitLine, type: 'dashed' } }
                 },
                 {
                     type: 'value',
                     name: 'Right Axis',
                     position: 'right',
-                    nameTextStyle: { color: '#cbd5e1' },
+                    nameTextStyle: { color: themeColors.text },
                     axisLine: { show: true, lineStyle: { color: '#91cc75' } },
-                    axisLabel: { color: '#94a3b8' },
+                    axisLabel: { color: themeColors.subText },
                     splitLine: { show: false }
                 }
             ],
             dataZoom: [
                 { type: 'inside', xAxisIndex: 0, filterMode: 'empty' },
-                { type: 'slider', xAxisIndex: 0, filterMode: 'empty', height: 20, bottom: 10, borderColor: '#475569' },
+                { type: 'slider', xAxisIndex: 0, filterMode: 'empty', height: 20, bottom: 10, borderColor: themeColors.border },
                 { type: 'inside', yAxisIndex: [0, 1], filterMode: 'empty' }, // Zoom both axes
-                { type: 'slider', yAxisIndex: 0, filterMode: 'empty', left: 10, width: 20, borderColor: '#475569' }, // Left axis slider
-                { type: 'slider', yAxisIndex: 1, filterMode: 'empty', right: 10, width: 20, borderColor: '#475569' } // Right axis slider
+                { type: 'slider', yAxisIndex: 0, filterMode: 'empty', left: 10, width: 20, borderColor: themeColors.border }, // Left axis slider
+                { type: 'slider', yAxisIndex: 1, filterMode: 'empty', right: 10, width: 20, borderColor: themeColors.border } // Right axis slider
             ],
             animation: false,
         };
@@ -538,9 +552,11 @@ const ChartRenderer: React.FC = () => {
             ...baseOption,
             series: seriesList,
         };
-    }, [chartData, chartType, selectedXColumn, selectedYColumns, yAxisAssignment]);
+    }, [chartData, chartType, selectedXColumn, selectedYColumns, yAxisAssignment, themeColors, theme]);
 
-    // 윈도우 리사이즈 시 차트 크기 조정
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // 윈도우 리사이즈 및 컨테이너 크기 변경 감지
     useEffect(() => {
         const handleResize = () => {
             if (chartRef.current) {
@@ -550,15 +566,25 @@ const ChartRenderer: React.FC = () => {
                         instance.resize();
                     }
                 } catch (error) {
-                    // 차트가 이미 dispose된 경우 무시
                     console.warn('Chart resize failed:', error);
                 }
             }
         };
 
         window.addEventListener('resize', handleResize);
+
+        // ResizeObserver로 컨테이너 크기 변경 감지
+        const observer = new ResizeObserver(() => {
+            handleResize();
+        });
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
+        }
+
         return () => {
             window.removeEventListener('resize', handleResize);
+            observer.disconnect();
         };
     }, []);
 
@@ -567,79 +593,74 @@ const ChartRenderer: React.FC = () => {
 
     if ((!selectedXColumn && !isSingleVariableChart) || selectedYColumns.length === 0) {
         return (
-            <div className="w-full bg-dark-800/50 backdrop-blur-sm rounded-2xl p-12 border border-dark-700 text-center animate-slide-up">
-                <svg className="mx-auto h-16 w-16 text-dark-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <h3 className="text-xl font-semibold text-dark-400 mb-2">
-                    Please select X and Y axes
-                </h3>
-                <p className="text-dark-500">
-                    Select columns above to display the chart
-                </p>
+            <div className="absolute inset-0 flex items-center justify-center p-12 text-center animate-slide-up">
+                <div>
+                    <svg className="mx-auto h-16 w-16 text-slate-400 dark:text-dark-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 className="text-xl font-semibold text-slate-500 dark:text-dark-400 mb-2">
+                        Please select X and Y axes
+                    </h3>
+                    <p className="text-slate-400 dark:text-dark-500">
+                        Select columns above to display the chart
+                    </p>
+                </div>
             </div>
         );
     }
 
     if (!chartData || chartData.series.length === 0) {
         return (
-            <div className="w-full bg-dark-800/50 backdrop-blur-sm rounded-2xl p-12 border border-dark-700 text-center animate-slide-up">
-                <svg className="mx-auto h-16 w-16 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <h3 className="text-xl font-semibold text-yellow-400 mb-2">
-                    No valid data
-                </h3>
-                <p className="text-dark-400">
-                    Selected columns contain no numeric data
-                </p>
+            <div className="absolute inset-0 flex items-center justify-center p-12 text-center animate-slide-up">
+                <div>
+                    <svg className="mx-auto h-16 w-16 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h3 className="text-xl font-semibold text-yellow-500 dark:text-yellow-400 mb-2">
+                        No valid data
+                    </h3>
+                    <p className="text-slate-500 dark:text-dark-400">
+                        Selected columns contain no numeric data
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="w-full space-y-4 animate-slide-up">
-            <div className="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-white flex items-center">
-                        <svg className="w-6 h-6 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                        </svg>
-                        Data Visualization
-                    </h2>
-
-                    <div className="text-sm text-dark-400">
-                        <span className="font-medium text-primary-400">{chartData.sampled.toLocaleString()}</span>
-                        {' / '}
-                        <span>{chartData.original.toLocaleString()}</span> points
-                        {chartData.sampled < chartData.original && (
-                            <span className="ml-2 text-xs text-yellow-400">
-                                (Downsampled)
-                            </span>
-                        )}
-                    </div>
+        <div className="absolute inset-0 flex flex-col p-6 animate-slide-up">
+            <div className="flex justify-end mb-2 px-2">
+                <div className="text-sm text-slate-500 dark:text-dark-400">
+                    <span className="font-medium text-primary-500 dark:text-primary-400">{chartData.sampled.toLocaleString()}</span>
+                    {' / '}
+                    <span>{chartData.original.toLocaleString()}</span> points
+                    {chartData.sampled < chartData.original && (
+                        <span className="ml-2 text-xs text-yellow-500 dark:text-yellow-400">
+                            (Downsampled)
+                        </span>
+                    )}
                 </div>
+            </div>
 
-                <div className="bg-dark-900/50 rounded-xl p-4 relative" style={{ height: '600px' }}>
-                    {isChartLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-dark-900/70 backdrop-blur-sm rounded-xl z-10">
-                            <div className="text-center">
-                                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mb-4"></div>
-                                <p className="text-sm text-dark-300">Rendering chart...</p>
-                            </div>
+            <div ref={containerRef} className="bg-white/50 dark:bg-dark-900/50 rounded-xl relative flex-1 min-h-0">
+                {isChartLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-dark-900/70 backdrop-blur-sm rounded-xl z-10">
+                        <div className="text-center">
+                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mb-4"></div>
+                            <p className="text-sm text-slate-500 dark:text-dark-300">Rendering chart...</p>
                         </div>
-                    )}
-                    {chartOption && (
-                        <ReactECharts
-                            key={`${chartType}-${selectedYColumns.join(',')}`}
-                            ref={chartRef}
-                            option={chartOption}
-                            style={{ height: '100%', width: '100%' }}
-                            opts={{ renderer: 'canvas' }}
-                            notMerge={true}
-                        />
-                    )}
-                </div>
+                    </div>
+                )}
+                {chartOption && (
+                    <ReactECharts
+                        key={`${chartType}-${selectedYColumns.join(',')}`}
+                        ref={chartRef}
+                        option={chartOption}
+                        style={{ height: '100%', width: '100%' }}
+                        opts={{ renderer: 'canvas' }}
+                        notMerge={true}
+                    />
+                )}
             </div>
         </div>
     );

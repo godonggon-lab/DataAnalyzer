@@ -24,9 +24,6 @@ body {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e293b 100%);
-  background-attachment: fixed;
-  color: #e2e8f0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -36,24 +33,20 @@ body {
   position: relative;
 }
 
-/* 배경 애니메이션 효과 */
-body::before {
+/* 배경 애니메이션 효과 - 다크 모드에서만 표시 */
+html.dark body::before {
   content: '';
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(
-      circle at 20% 50%,
+  background: radial-gradient(circle at 20% 50%,
       rgba(56, 189, 248, 0.1) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 80% 80%,
+      transparent 50%),
+    radial-gradient(circle at 80% 80%,
       rgba(14, 165, 233, 0.15) 0%,
-      transparent 50%
-    );
+      transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -95,6 +88,7 @@ body::before {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -105,6 +99,7 @@ body::before {
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -112,10 +107,12 @@ body::before {
 }
 
 @keyframes pulse-slow {
+
   0%,
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

@@ -186,24 +186,23 @@ const ColumnSelector: React.FC = () => {
 
     return (
         <div className="w-full space-y-6 animate-slide-up">
-            <div className="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+            <div className="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-200 dark:border-dark-700">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center">
                     <svg className="w-6 h-6 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                     Axis Selection
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* X축 선택 */}
+                <div className="grid grid-cols-1 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-dark-300 mb-2">
+                        <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
                             X-Axis (Horizontal)
                         </label>
                         <select
                             value={selectedXColumn || ''}
                             onChange={(e) => setSelectedXColumn(e.target.value || null)}
-                            className="w-full bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white text-base rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                         >
                             <option value="">Select...</option>
                             {columns.map((col) => (
@@ -214,7 +213,7 @@ const ColumnSelector: React.FC = () => {
                         </select>
 
                         {selectedXColumn && xColumn && (
-                            <div className="mt-2 flex items-center text-sm">
+                            <div className="mt-2 flex items-center text-base">
                                 {getTypeIcon(xColumn.type)}
                                 <span className={`ml-2 ${xColumnValid ? 'text-green-400' : 'text-yellow-400'}`}>
                                     {xColumn.type}
@@ -223,7 +222,7 @@ const ColumnSelector: React.FC = () => {
                         )}
 
                         {selectedXColumn && !xColumnValid && (
-                            <p className="mt-2 text-xs text-yellow-400 flex items-start">
+                            <p className="mt-2 text-sm text-yellow-400 flex items-start">
                                 <svg className="w-4 h-4 mr-1 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                 </svg>
@@ -232,18 +231,17 @@ const ColumnSelector: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Y축 선택 (다중 선택) */}
                     <div>
-                        <label className="block text-sm font-medium text-dark-300 mb-2">
+                        <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
                             Y-Axis (Vertical) - Multiple Selection
                             {selectedYColumns.length > 0 && (
-                                <span className="ml-2 text-xs text-primary-400">
+                                <span className="ml-2 text-sm text-primary-500 dark:text-primary-400">
                                     ({selectedYColumns.length} selected)
                                 </span>
                             )}
                         </label>
 
-                        <div className="bg-dark-700 border border-dark-600 rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
+                        <div className="bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
                             {numericColumns.map((col, index) => {
                                 const isSelected = selectedYColumns.includes(col.name);
                                 const colorIndex = selectedYColumns.indexOf(col.name);
@@ -254,8 +252,8 @@ const ColumnSelector: React.FC = () => {
                                     <label
                                         key={col.name}
                                         className={`flex items-center p-2 rounded-lg cursor-pointer transition-all ${isSelected
-                                            ? 'bg-dark-600 border border-primary-500/50'
-                                            : 'hover:bg-dark-600/50'
+                                            ? 'bg-slate-200 dark:bg-dark-600 border border-primary-500/50'
+                                            : 'hover:bg-slate-200/50 dark:hover:bg-dark-600/50'
                                             }`}
                                     >
                                         <input
@@ -272,7 +270,7 @@ const ColumnSelector: React.FC = () => {
                                                     className="w-3 h-3 rounded-full mr-2"
                                                     style={{ backgroundColor: isSelected ? seriesColor : '#64748b' }}
                                                 ></span>
-                                                <span className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-dark-300'}`}>
+                                                <span className={`text-sm ${isSelected ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-500 dark:text-dark-300'}`}>
                                                     {col.name}
                                                 </span>
                                             </div>
@@ -288,7 +286,7 @@ const ColumnSelector: React.FC = () => {
                                                         }}
                                                         className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 0
                                                             ? 'bg-blue-500 text-white'
-                                                            : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
+                                                            : 'bg-slate-300 dark:bg-dark-500 text-slate-600 dark:text-dark-300 hover:bg-slate-400 dark:hover:bg-dark-400'
                                                             }`}
                                                         title="Left Axis"
                                                     >
@@ -302,7 +300,7 @@ const ColumnSelector: React.FC = () => {
                                                         }}
                                                         className={`px-2 py-0.5 text-xs rounded transition-all ${axisIndex === 1
                                                             ? 'bg-orange-500 text-white'
-                                                            : 'bg-dark-500 text-dark-300 hover:bg-dark-400'
+                                                            : 'bg-slate-300 dark:bg-dark-500 text-slate-600 dark:text-dark-300 hover:bg-slate-400 dark:hover:bg-dark-400'
                                                             }`}
                                                         title="Right Axis"
                                                     >
@@ -333,13 +331,13 @@ const ColumnSelector: React.FC = () => {
 
                     {/* 차트 타입 선택 */}
                     <div>
-                        <label className="block text-sm font-medium text-dark-300 mb-2">
+                        <label className="block text-sm font-medium text-slate-600 dark:text-dark-300 mb-2">
                             Chart Type
                         </label>
                         <select
                             value={chartType}
                             onChange={(e) => setChartType(e.target.value as ChartType)}
-                            className="w-full bg-dark-700 border border-dark-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                         >
                             <option value={ChartType.SCATTER}>Scatter Plot</option>
                             <option value={ChartType.LINE}>Line Chart</option>
@@ -360,8 +358,8 @@ const ColumnSelector: React.FC = () => {
 
                 {/* 필터 및 옵션 섹션 */}
                 {(filterRange || chartType === ChartType.HISTOGRAM) && (
-                    <div className="mt-6 pt-6 border-t border-dark-600">
-                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <div className="mt-6 pt-6 border-t border-slate-200 dark:border-dark-600">
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center">
                             <svg className="w-5 h-5 mr-2 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                             </svg>
@@ -377,22 +375,22 @@ const ColumnSelector: React.FC = () => {
                                     </label>
                                     <div className="flex items-center space-x-2">
                                         <div className="flex-1">
-                                            <span className="text-xs text-dark-400 block mb-1">Min</span>
+                                            <span className="text-xs text-slate-500 dark:text-dark-400 block mb-1">Min</span>
                                             <input
                                                 type="number"
                                                 value={localMin}
                                                 onChange={handleMinChange}
-                                                className="w-full bg-dark-700 border border-dark-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
                                             />
                                         </div>
-                                        <span className="text-dark-400 mt-5">~</span>
+                                        <span className="text-slate-500 dark:text-dark-400 mt-5">~</span>
                                         <div className="flex-1">
-                                            <span className="text-xs text-dark-400 block mb-1">Max</span>
+                                            <span className="text-xs text-slate-500 dark:text-dark-400 block mb-1">Max</span>
                                             <input
                                                 type="number"
                                                 value={localMax}
                                                 onChange={handleMaxChange}
-                                                className="w-full bg-dark-700 border border-dark-600 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                                className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-500"
                                             />
                                         </div>
                                     </div>

@@ -51,25 +51,25 @@ const BlogList = () => {
         <div className="max-w-6xl mx-auto space-y-8">
             {/* Hero Section */}
             <div className="text-center">
-                <h1 className="text-5xl font-bold text-white mb-4">Blog</h1>
-                <p className="text-xl text-dark-300 max-w-2xl mx-auto">
+                <h1 className="text-5xl font-bold text-slate-900 dark:text-white mb-4">Blog</h1>
+                <p className="text-xl text-slate-600 dark:text-dark-300 max-w-2xl mx-auto">
                     데이터 분석과 시각화에 대한 인사이트, 팁, 그리고 실전 가이드
                 </p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-dark-700 text-center">
-                    <div className="text-3xl font-bold text-primary-400 mb-2">{blogPosts.length}</div>
-                    <div className="text-dark-400 text-sm">Published Articles</div>
+                <div className="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-200 dark:border-dark-700 text-center">
+                    <div className="text-3xl font-bold text-primary-500 dark:text-primary-400 mb-2">{blogPosts.length}</div>
+                    <div className="text-slate-500 dark:text-dark-400 text-sm">Published Articles</div>
                 </div>
-                <div className="bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-dark-700 text-center">
-                    <div className="text-3xl font-bold text-primary-400 mb-2">{categories.length - 1}</div>
-                    <div className="text-dark-400 text-sm">Categories</div>
+                <div className="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-200 dark:border-dark-700 text-center">
+                    <div className="text-3xl font-bold text-primary-500 dark:text-primary-400 mb-2">{categories.length - 1}</div>
+                    <div className="text-slate-500 dark:text-dark-400 text-sm">Categories</div>
                 </div>
-                <div className="bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-dark-700 text-center">
-                    <div className="text-3xl font-bold text-primary-400 mb-2">Weekly</div>
-                    <div className="text-dark-400 text-sm">New Content</div>
+                <div className="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-200 dark:border-dark-700 text-center">
+                    <div className="text-3xl font-bold text-primary-500 dark:text-primary-400 mb-2">Weekly</div>
+                    <div className="text-slate-500 dark:text-dark-400 text-sm">New Content</div>
                 </div>
             </div>
 
@@ -79,8 +79,8 @@ const BlogList = () => {
                     <button
                         key={category}
                         className={`px-4 py-2 rounded-lg transition-colors ${category === '전체'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-dark-800 text-dark-300 hover:bg-dark-700 hover:text-white border border-dark-700'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-dark-300 hover:bg-slate-200 dark:hover:bg-dark-700 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-dark-700'
                             }`}
                     >
                         {category}
@@ -94,27 +94,27 @@ const BlogList = () => {
                     <Link
                         key={post.id}
                         to={`/blog/${post.id}`}
-                        className="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500 transition-all group"
+                        className="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-200 dark:border-dark-700 hover:border-primary-500 transition-all group"
                     >
                         {/* Category Badge */}
                         <div className="mb-3">
-                            <span className="text-xs px-3 py-1 rounded-full bg-primary-500/20 text-primary-400">
+                            <span className="text-xs px-3 py-1 rounded-full bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400">
                                 {post.category}
                             </span>
                         </div>
 
                         {/* Title */}
-                        <h2 className="text-2xl font-bold text-white mb-3 group-hover:text-primary-400 transition-colors">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
                             {post.title}
                         </h2>
 
                         {/* Description */}
-                        <p className="text-dark-300 mb-4 line-clamp-2">
+                        <p className="text-slate-600 dark:text-dark-300 mb-4 line-clamp-2">
                             {post.description}
                         </p>
 
                         {/* Meta */}
-                        <div className="flex items-center justify-between text-dark-400 text-sm">
+                        <div className="flex items-center justify-between text-slate-500 dark:text-dark-400 text-sm">
                             <div className="flex items-center space-x-4">
                                 <span className="flex items-center">
                                     <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,8 +142,8 @@ const BlogList = () => {
 
             {/* CTA Section */}
             <div className="bg-gradient-to-r from-primary-500/10 to-primary-700/10 rounded-2xl p-8 border border-primary-500/20 text-center">
-                <h2 className="text-2xl font-bold text-white mb-2">Stay Updated</h2>
-                <p className="text-dark-300 mb-6">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Stay Updated</h2>
+                <p className="text-slate-600 dark:text-dark-300 mb-6">
                     새로운 블로그 포스트와 데이터 분석 팁을 받아보세요
                 </p>
                 <div className="flex justify-center space-x-4">
@@ -155,7 +155,7 @@ const BlogList = () => {
                     </Link>
                     <Link
                         to="/contact"
-                        className="px-6 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors"
+                        className="px-6 py-3 bg-slate-200 dark:bg-dark-700 hover:bg-slate-300 dark:hover:bg-dark-600 text-slate-900 dark:text-white rounded-lg transition-colors"
                     >
                         Contact Us
                     </Link>

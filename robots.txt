@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-
-Sitemap: https://godonggon-lab.github.io/DataAnalyzer/sitemap.xml
+Sitemap: https://freedataanalyzer.com/sitemap.xml

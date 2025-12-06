@@ -308,11 +308,11 @@ const ChartRenderer: React.FC = () => {
             progressiveThreshold: 3000,
             backgroundColor: 'transparent',
             grid: {
-                left: '3%',
-                right: '4%',
+                left: '80px',  // Y축 레이블이 잘 보이도록 고정 너비 사용
+                right: selectedYColumns.length > 1 ? '80px' : '40px',  // 오른쪽 Y축 공간
                 bottom: chartData.isXAxisTime ? '20%' : '15%', // DateTime 라벨을 위한 추가 공간
                 top: selectedYColumns.length > 1 ? '15%' : '10%', // 범례 공간 확보
-                containLabel: true,
+                containLabel: false,  // 고정 너비를 사용하므로 false로 변경
             },
             legend: selectedYColumns.length > 1 ? {
                 top: '5%',
@@ -379,10 +379,13 @@ const ChartRenderer: React.FC = () => {
                 axisLine: {
                     lineStyle: {
                         color: themeColors.border,
+                        width: 2,  // 축 선을 더 굵게
                     },
                 },
                 axisLabel: {
-                    color: themeColors.subText,
+                    color: themeColors.text,  // 더 진한 색상
+                    fontWeight: 600,  // 레이블을 굵게
+                    fontSize: 12,
                     hideOverlap: true, // 겹침 방지
                     formatter: chartData.isXAxisTime ? (value: number) => {
                         // DateTime 포맷 간소화
@@ -419,18 +422,26 @@ const ChartRenderer: React.FC = () => {
                     type: 'value',
                     name: 'Left Axis',
                     position: 'left',
-                    nameTextStyle: { color: themeColors.text },
-                    axisLine: { show: true, lineStyle: { color: '#5470c6' } },
-                    axisLabel: { color: themeColors.subText },
+                    nameTextStyle: { color: themeColors.text, fontWeight: 'bold' },
+                    axisLine: { show: true, lineStyle: { color: '#5470c6', width: 2 } },
+                    axisLabel: {
+                        color: themeColors.text,  // 더 진한 색상
+                        fontWeight: 600,  // 레이블을 굵게
+                        fontSize: 12
+                    },
                     splitLine: { lineStyle: { color: themeColors.splitLine, type: 'dashed' } }
                 },
                 {
                     type: 'value',
                     name: 'Right Axis',
                     position: 'right',
-                    nameTextStyle: { color: themeColors.text },
-                    axisLine: { show: true, lineStyle: { color: '#91cc75' } },
-                    axisLabel: { color: themeColors.subText },
+                    nameTextStyle: { color: themeColors.text, fontWeight: 'bold' },
+                    axisLine: { show: true, lineStyle: { color: '#91cc75', width: 2 } },
+                    axisLabel: {
+                        color: themeColors.text,  // 더 진한 색상
+                        fontWeight: 600,  // 레이블을 굵게
+                        fontSize: 12
+                    },
                     splitLine: { show: false }
                 }
             ],

@@ -14,6 +14,8 @@ export enum ChartType {
     HISTOGRAM = 'histogram',
     BOXPLOT = 'boxplot',
     HEATMAP = 'heatmap',
+    PIE = 'pie',
+    WORDCLOUD = 'wordCloud',
 }
 
 // 컬럼 정보 인터페이스

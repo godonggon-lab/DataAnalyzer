@@ -100,8 +100,95 @@ const AIAnalysisPanel = () => {
 
             {/* Results Area */}
             {analysisResult && (
-                <div className="prose dark:prose-invert max-w-none bg-slate-50 dark:bg-dark-700/30 rounded-xl p-6 border border-slate-100 dark:border-dark-600">
-                    <ReactMarkdown>{analysisResult}</ReactMarkdown>
+                <div className="bg-slate-50 dark:bg-dark-700/30 rounded-xl p-6 border border-slate-100 dark:border-dark-600">
+                    <ReactMarkdown
+                        components={{
+                            h1: ({ children }) => (
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 pb-2 border-b border-slate-200 dark:border-dark-600">
+                                    {children}
+                                </h1>
+                            ),
+                            h2: ({ children }) => (
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-6 mb-3">
+                                    {children}
+                                </h2>
+                            ),
+                            h3: ({ children }) => (
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">
+                                    {children}
+                                </h3>
+                            ),
+                            p: ({ children }) => (
+                                <p className="text-slate-700 dark:text-dark-200 leading-relaxed mb-4">
+                                    {children}
+                                </p>
+                            ),
+                            ul: ({ children }) => (
+                                <ul className="list-disc list-inside space-y-2 mb-4 text-slate-700 dark:text-dark-200">
+                                    {children}
+                                </ul>
+                            ),
+                            ol: ({ children }) => (
+                                <ol className="list-decimal list-inside space-y-2 mb-4 text-slate-700 dark:text-dark-200">
+                                    {children}
+                                </ol>
+                            ),
+                            li: ({ children }) => (
+                                <li className="ml-4">
+                                    {children}
+                                </li>
+                            ),
+                            strong: ({ children }) => (
+                                <strong className="font-bold text-slate-900 dark:text-white">
+                                    {children}
+                                </strong>
+                            ),
+                            em: ({ children }) => (
+                                <em className="italic text-slate-600 dark:text-dark-300">
+                                    {children}
+                                </em>
+                            ),
+                            code: ({ inline, children, ...props }: any) =>
+                                inline ? (
+                                    <code className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm font-mono">
+                                        {children}
+                                    </code>
+                                ) : (
+                                    <code className="block bg-slate-800 dark:bg-slate-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono mb-4">
+                                        {children}
+                                    </code>
+                                ),
+                            blockquote: ({ children }) => (
+                                <blockquote className="border-l-4 border-purple-500 pl-4 py-2 my-4 bg-purple-50 dark:bg-purple-900/10 text-slate-700 dark:text-dark-200 italic">
+                                    {children}
+                                </blockquote>
+                            ),
+                            table: ({ children }) => (
+                                <div className="overflow-x-auto mb-4">
+                                    <table className="min-w-full border border-slate-200 dark:border-dark-600 rounded-lg">
+                                        {children}
+                                    </table>
+                                </div>
+                            ),
+                            thead: ({ children }) => (
+                                <thead className="bg-slate-100 dark:bg-dark-700">
+                                    {children}
+                                </thead>
+                            ),
+                            th: ({ children }) => (
+                                <th className="px-4 py-2 text-left font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-dark-600">
+                                    {children}
+                                </th>
+                            ),
+                            td: ({ children }) => (
+                                <td className="px-4 py-2 text-slate-700 dark:text-dark-200 border-b border-slate-100 dark:border-dark-700">
+                                    {children}
+                                </td>
+                            ),
+                        }}
+                    >
+                        {analysisResult}
+                    </ReactMarkdown>
                 </div>
             )}
         </div>

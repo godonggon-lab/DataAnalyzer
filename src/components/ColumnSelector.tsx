@@ -12,6 +12,66 @@ const seriesColors = [
     '#a78bfa', // Purple
 ];
 
+// 차트 가이드 데이터
+const CHART_GUIDES: Record<ChartType, { label: string; description: string; xAxis: string; yAxis: string; bestFor: string }> = {
+    [ChartType.SCATTER]: {
+        label: 'Scatter Plot',
+        description: 'Displays the relationship between two numerical variables. Good for identifying correlations or clusters.',
+        xAxis: 'Numeric Variable (Independent)',
+        yAxis: 'Numeric Variable (Dependent)',
+        bestFor: 'Correlation analysis, outlier detection',
+    },
+    [ChartType.LINE]: {
+        label: 'Line Chart',
+        description: 'Shows trends over time or ordered categories. Great for visualizing continuous data progression.',
+        xAxis: 'Time or Ordered Category',
+        yAxis: 'Numeric Value',
+        bestFor: 'Time series analysis, trend tracking',
+    },
+    [ChartType.BAR]: {
+        label: 'Bar Chart',
+        description: 'Compares values across different categories. Height of bars represents the value.',
+        xAxis: 'Category (Label)',
+        yAxis: 'Numeric Value',
+        bestFor: 'Comparing quantities among categories',
+    },
+    [ChartType.HISTOGRAM]: {
+        label: 'Histogram',
+        description: 'Visualizes the distribution of a single numerical variable by grouping data into bins.',
+        xAxis: 'Numeric Range (Bins) - Auto generated',
+        yAxis: 'Frequency (Count) - Auto generated',
+        bestFor: 'Understanding data distribution, skewness',
+    },
+    [ChartType.BOXPLOT]: {
+        label: 'Box Plot',
+        description: 'Displays distribution using quartiles (Min, Q1, Median, Q3, Max). Shows spread and outliers.',
+        xAxis: 'Category (Optional for grouping)',
+        yAxis: 'Numeric Variable',
+        bestFor: 'Statistical summary, outlier detection',
+    },
+    [ChartType.PIE]: {
+        label: 'Pie Chart',
+        description: 'Shows proportions of a whole. Slices represent percentage of total.',
+        xAxis: 'Category (Label)',
+        yAxis: 'Value (Size) - Optional (Defaults to Count)',
+        bestFor: 'Part-to-whole comparison (Market share, Demographics)',
+    },
+    [ChartType.WORDCLOUD]: {
+        label: 'Word Cloud',
+        description: 'Visual representation of text data. Word size indicates frequency.',
+        xAxis: 'Text Column',
+        yAxis: 'N/A',
+        bestFor: 'Text analysis, finding common terms',
+    },
+    [ChartType.HEATMAP]: {
+        label: 'Correlation Heatmap',
+        description: 'Visualizes strength of relationships between multiple numerical variables using color.',
+        xAxis: 'Variables Matrix',
+        yAxis: 'Variables Matrix',
+        bestFor: 'Multivariate correlation analysis',
+    }
+};
+
 const ColumnSelector: React.FC = () => {
     const {
         processedColumns: columns,
@@ -32,6 +92,8 @@ const ColumnSelector: React.FC = () => {
         setYAxisAssignment,
         selectedCorrelationColumns,
         toggleCorrelationColumn,
+        setSelectedYColumns,
+        setSelectedCorrelationColumns,
     } = useDataStore();
 
     // 로컬 입력 상태 (입력 중 끊김 방지)
@@ -43,7 +105,9 @@ const ColumnSelector: React.FC = () => {
     const [localBoxPlotMax, setLocalBoxPlotMax] = useState(boxPlotMaxCategories);
 
     // 필터 대상 컬럼 결정
-    const targetColumnName = chartType === ChartType.HISTOGRAM ? selectedYColumns[0] : selectedXColumn;
+    const targetColumnName = chartType === ChartType.HISTOGRAM ? selectedYColumns[0] :
+        chartType === ChartType.PIE ? selectedXColumn :
+            selectedXColumn;
     const targetColumn = columns.find(c => c.name === targetColumnName);
     const isTargetNumeric = targetColumn ? isNumericColumn(targetColumn) : false;
 
@@ -120,6 +184,16 @@ const ColumnSelector: React.FC = () => {
 
             // 워크어라운드: toggle을 호출하여 해제? 복잡함.
             // -> ChartRenderer에서 0번 인덱스만 사용하도록 수정 예정이므로 여기서는 UI disable만 처리.
+        }
+
+        // WordCloud는 Y축 선택 불필요
+        if (chartType === ChartType.WORDCLOUD && selectedYColumns.length > 0) {
+            // UI에서 숨기므로 처리 불필요
+        }
+
+        // Pie Chart는 Y축 최대 1개 (Value)
+        if (chartType === ChartType.PIE && selectedYColumns.length > 1) {
+            // UI disable 처리
         }
     }, [chartType, selectedYColumns]);
 
@@ -251,11 +325,34 @@ const ColumnSelector: React.FC = () => {
                                 </p>
                             )}
                         </div>
+                    ) : chartType === ChartType.WORDCLOUD ? (
+                        <div>
+                            <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
+                                Select Text Column for Word Cloud
+                            </label>
+                            <select
+                                value={selectedXColumn || ''}
+                                onChange={(e) => setSelectedXColumn(e.target.value || null)}
+                                className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white text-base rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                            >
+                                <option value="">Select Text Column...</option>
+                                {columns.filter(c => c.type === DataType.STRING || c.type === DataType.UNKNOWN).map((col) => (
+                                    <option key={col.name} value={col.name}>
+                                        {col.name} ({col.type})
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedXColumn && (
+                                <p className="mt-2 text-xs text-slate-500 dark:text-dark-400">
+                                    The word frequency will be calculated from this column.
+                                </p>
+                            )}
+                        </div>
                     ) : (
                         <>
                             <div>
                                 <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
-                                    X-Axis (Horizontal)
+                                    {chartType === ChartType.PIE ? 'Category Column (Label)' : 'X-Axis (Horizontal)'}
                                 </label>
                                 <select
                                     value={selectedXColumn || ''}
@@ -269,6 +366,7 @@ const ColumnSelector: React.FC = () => {
                                         </option>
                                     ))}
                                 </select>
+
 
                                 {selectedXColumn && xColumn && (
                                     <div className="mt-2 flex items-center text-base">
@@ -291,13 +389,18 @@ const ColumnSelector: React.FC = () => {
 
                             <div>
                                 <label className="block text-base font-medium text-slate-600 dark:text-dark-300 mb-3">
-                                    Y-Axis (Vertical) - Multiple Selection
+                                    {chartType === ChartType.PIE ? 'Value Column (Optional)' : 'Y-Axis (Vertical) - Multiple Selection'}
                                     {selectedYColumns.length > 0 && (
                                         <span className="ml-2 text-sm text-primary-500 dark:text-primary-400">
                                             ({selectedYColumns.length} selected)
                                         </span>
                                     )}
                                 </label>
+                                {chartType === ChartType.PIE && (
+                                    <p className="text-xs text-slate-500 dark:text-dark-400 mb-2">
+                                        If no value column is selected, the count of categories will be used.
+                                    </p>
+                                )}
 
                                 <div className="bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 rounded-lg p-3 max-h-60 overflow-y-auto space-y-2">
                                     {numericColumns.map((col, index) => {
@@ -318,8 +421,8 @@ const ColumnSelector: React.FC = () => {
                                                     type="checkbox"
                                                     checked={isSelected}
                                                     onChange={() => toggleYColumn(col.name)}
-                                                    disabled={chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected}
-                                                    className={`w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 ${chartType === ChartType.HISTOGRAM && selectedYColumns.length >= 1 && !isSelected ? 'opacity-50 cursor-not-allowed' : ''
+                                                    disabled={(chartType === ChartType.HISTOGRAM || chartType === ChartType.PIE) && selectedYColumns.length >= 1 && !isSelected}
+                                                    className={`w-4 h-4 rounded border-dark-500 text-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 ${(chartType === ChartType.HISTOGRAM || chartType === ChartType.PIE) && selectedYColumns.length >= 1 && !isSelected ? 'opacity-50 cursor-not-allowed' : ''
                                                         }`}
                                                 />
                                                 <div className="flex-1 flex items-center justify-between ml-2">
@@ -334,7 +437,7 @@ const ColumnSelector: React.FC = () => {
                                                     </div>
 
                                                     {/* L/R Toggle Button - Hide for Histogram and BoxPlot */}
-                                                    {isSelected && chartType !== ChartType.HISTOGRAM && chartType !== ChartType.BOXPLOT && (
+                                                    {isSelected && chartType !== ChartType.HISTOGRAM && chartType !== ChartType.BOXPLOT && chartType !== ChartType.PIE && (
                                                         <div className="flex items-center gap-1 ml-2">
                                                             <button
                                                                 type="button"
@@ -396,7 +499,12 @@ const ColumnSelector: React.FC = () => {
                         </label>
                         <select
                             value={chartType}
-                            onChange={(e) => setChartType(e.target.value as ChartType)}
+                            onChange={(e) => {
+                                setChartType(e.target.value as ChartType);
+                                setSelectedXColumn(null);
+                                setSelectedYColumns([]);
+                                setSelectedCorrelationColumns([]);
+                            }}
                             className="w-full bg-slate-100 dark:bg-dark-700 border border-slate-200 dark:border-dark-600 text-slate-900 dark:text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                         >
                             <option value={ChartType.SCATTER}>Scatter Plot</option>
@@ -404,16 +512,39 @@ const ColumnSelector: React.FC = () => {
                             <option value={ChartType.BAR}>Bar Chart</option>
                             <option value={ChartType.HISTOGRAM}>Histogram</option>
                             <option value={ChartType.BOXPLOT}>Box Plot</option>
+                            <option value={ChartType.PIE}>Pie Chart (Donut)</option>
+                            <option value={ChartType.WORDCLOUD}>Word Cloud</option>
                             <option value={ChartType.HEATMAP}>Correlation Heatmap</option>
                         </select>
 
-                        <div className="mt-2 text-xs text-dark-400">
-                            {chartType === ChartType.SCATTER && 'Display data as points'}
-                            {chartType === ChartType.LINE && 'Display with connected lines'}
-                            {chartType === ChartType.BAR && 'Display as bars'}
-                            {chartType === ChartType.HISTOGRAM && 'Display frequency distribution (Y-axis data)'}
-                            {chartType === ChartType.BOXPLOT && 'Display statistical distribution (Min, Q1, Median, Q3, Max)'}
-                            {chartType === ChartType.HEATMAP && 'Display correlation matrix between multiple numeric columns'}
+
+
+                        {/* Chart Interpretation Guide */}
+                        <div className="mt-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-100 dark:border-blue-900/20">
+                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-sm flex items-center">
+                                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {CHART_GUIDES[chartType].label} Usage
+                            </h4>
+                            <p className="text-sm text-blue-800 dark:text-blue-200 mb-3 leading-relaxed">
+                                {CHART_GUIDES[chartType].description}
+                            </p>
+
+                            <div className="grid grid-cols-1 gap-2 text-xs">
+                                <div className="flex items-start">
+                                    <span className="font-bold text-blue-700 dark:text-blue-300 w-16 flex-shrink-0">X-Axis:</span>
+                                    <span className="text-blue-600 dark:text-blue-200">{CHART_GUIDES[chartType].xAxis}</span>
+                                </div>
+                                <div className="flex items-start">
+                                    <span className="font-bold text-blue-700 dark:text-blue-300 w-16 flex-shrink-0">Y-Axis:</span>
+                                    <span className="text-blue-600 dark:text-blue-200">{CHART_GUIDES[chartType].yAxis}</span>
+                                </div>
+                                <div className="flex items-start mt-1 pt-2 border-t border-blue-200 dark:border-blue-800/30">
+                                    <span className="font-bold text-blue-700 dark:text-blue-300 w-16 flex-shrink-0">Best For:</span>
+                                    <span className="text-blue-600 dark:text-blue-200 italic">{CHART_GUIDES[chartType].bestFor}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

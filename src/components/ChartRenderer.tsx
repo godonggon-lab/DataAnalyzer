@@ -1,11 +1,12 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
+import 'echarts-wordcloud';
 import { useDataStore } from '../store/dataStore';
 import { useThemeStore } from '../store/themeStore';
 import { ChartType, ChartDataPoint } from '../types';
 import { downsampleData } from '../utils/dataSampling';
 import { toNumber } from '../utils/typeInference';
-import { calculateHistogram, groupDataForBoxPlot, calculateBoxPlotStats, calculateCorrelationMatrix } from '../utils/statistics';
+import { calculateHistogram, groupDataForBoxPlot, calculateBoxPlotStats, calculateCorrelationMatrix, aggregateDataForPie, calculateWordFrequency } from '../utils/statistics';
 
 // 시리즈 색상 팔레트
 const seriesColors = [
@@ -53,8 +54,10 @@ const ChartRenderer: React.FC = () => {
 
         // UI가 렌더링될 시간을 주기 위해 setTimeout 사용
         const timer = setTimeout(() => {
-            if ((chartType !== ChartType.HEATMAP && (selectedYColumns.length === 0 || processedData.length === 0)) ||
-                (chartType === ChartType.HEATMAP && (selectedCorrelationColumns.length < 2 || processedData.length === 0))) {
+            if ((chartType !== ChartType.HEATMAP && chartType !== ChartType.WORDCLOUD && chartType !== ChartType.PIE && (selectedYColumns.length === 0 || processedData.length === 0)) ||
+                (chartType === ChartType.HEATMAP && (selectedCorrelationColumns.length < 2 || processedData.length === 0)) ||
+                (chartType === ChartType.WORDCLOUD && (!selectedXColumn || processedData.length === 0)) ||
+                (chartType === ChartType.PIE && (!selectedXColumn || processedData.length === 0))) {
                 setChartData(null);
                 setIsChartLoading(false);
                 return;
@@ -173,6 +176,58 @@ const ChartRenderer: React.FC = () => {
                         sampled: processedData.length,
                         isXAxisTime: false
                     };
+                }
+            }
+
+            // 파이 차트 처리
+            else if (chartType === ChartType.PIE) {
+                if (selectedXColumn) {
+                    const xIndex = processedColumns.findIndex(c => c.name === selectedXColumn);
+                    if (xIndex !== -1) {
+                        const xValues = processedData.map(row => row[xIndex]);
+
+                        let yValues: number[] | undefined = undefined;
+                        if (selectedYColumns.length > 0) {
+                            const yIndex = processedColumns.findIndex(c => c.name === selectedYColumns[0]);
+                            if (yIndex !== -1) {
+                                yValues = processedData.map(row => toNumber(row[yIndex]));
+                            }
+                        }
+
+                        const pieData = aggregateDataForPie(xValues, yValues);
+
+                        result = {
+                            type: 'pie',
+                            series: [{
+                                name: selectedXColumn,
+                                data: pieData
+                            }],
+                            original: processedData.length,
+                            sampled: pieData.length,
+                            isXAxisTime: false
+                        };
+                    }
+                }
+            }
+            // 워드 클라우드 처리
+            else if (chartType === ChartType.WORDCLOUD) {
+                if (selectedXColumn) {
+                    const xIndex = processedColumns.findIndex(c => c.name === selectedXColumn);
+                    if (xIndex !== -1) {
+                        const textData = processedData.map(row => row[xIndex]);
+                        const wordData = calculateWordFrequency(textData);
+
+                        result = {
+                            type: 'wordCloud',
+                            series: [{
+                                name: selectedXColumn,
+                                data: wordData
+                            }],
+                            original: processedData.length,
+                            sampled: wordData.length,
+                            isXAxisTime: false
+                        };
+                    }
                 }
             }
             // 기존 차트 (Scatter, Line, Bar)
@@ -543,6 +598,106 @@ const ChartRenderer: React.FC = () => {
             };
         }
 
+        // 파이 차트 옵션
+        if (chartData.type === 'pie') {
+            return {
+                ...baseOption,
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} ({d}%)'
+                },
+                legend: {
+                    type: 'scroll',
+                    orient: 'vertical',
+                    right: 10,
+                    top: 20,
+                    bottom: 20,
+                    textStyle: {
+                        color: themeColors.text,
+                    },
+                    pageTextStyle: {
+                        color: themeColors.text
+                    }
+                },
+                series: [
+                    {
+                        name: chartData.series[0].name,
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        avoidLabelOverlap: false,
+                        itemStyle: {
+                            borderRadius: 10,
+                            borderColor: theme === 'dark' ? '#0f172a' : '#fff',
+                            borderWidth: 2
+                        },
+                        label: {
+                            show: false,
+                            position: 'center'
+                        },
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: 20,
+                                fontWeight: 'bold',
+                                color: themeColors.text
+                            }
+                        },
+                        labelLine: {
+                            show: false
+                        },
+                        data: chartData.series[0].data
+                    }
+                ]
+            };
+        }
+
+        // 워드 클라우드 옵션
+        if (chartData.type === 'wordCloud') {
+            return {
+                ...baseOption,
+                tooltip: {
+                    show: true,
+                    formatter: '{b}: {c}'
+                },
+                series: [{
+                    type: 'wordCloud',
+                    shape: 'circle',
+                    left: 'center',
+                    top: 'center',
+                    width: '90%',
+                    height: '90%',
+                    right: null,
+                    bottom: null,
+                    sizeRange: [12, 60],
+                    rotationRange: [-90, 90],
+                    rotationStep: 45,
+                    gridSize: 8,
+                    drawOutOfBound: false,
+                    layoutAnimation: true,
+                    textStyle: {
+                        fontFamily: 'sans-serif',
+                        fontWeight: 'bold',
+                        color: function () {
+                            // Random color
+                            return 'rgb(' + [
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160)
+                            ].join(',') + ')';
+                        }
+                    },
+                    emphasis: {
+                        focus: 'self',
+                        textStyle: {
+                            shadowBlur: 10,
+                            shadowColor: '#333'
+                        }
+                    },
+                    data: chartData.series[0].data
+                }]
+            };
+        }
+
         // 기존 차트 옵션 (Scatter, Line, Bar)
         // 각 Y 컬럼마다 시리즈 생성
         const seriesList = chartData.series.map((seriesInfo: any) => {
@@ -674,11 +829,12 @@ const ChartRenderer: React.FC = () => {
     }, []);
 
     // X축 선택이 없어도 되는 차트 타입(히스토그램, 박스플롯, 히트맵)은 예외 처리
-    const isSingleVariableChart = chartType === ChartType.HISTOGRAM || chartType === ChartType.BOXPLOT || chartType === ChartType.HEATMAP;
+    const isSingleVariableChart = chartType === ChartType.HISTOGRAM || chartType === ChartType.BOXPLOT || chartType === ChartType.HEATMAP || chartType === ChartType.PIE || chartType === ChartType.WORDCLOUD;
 
     if ((!selectedXColumn && !isSingleVariableChart) ||
-        (chartType !== ChartType.HEATMAP && selectedYColumns.length === 0) ||
-        (chartType === ChartType.HEATMAP && selectedCorrelationColumns.length < 2)) {
+        (chartType !== ChartType.HEATMAP && chartType !== ChartType.WORDCLOUD && chartType !== ChartType.PIE && selectedYColumns.length === 0) ||
+        (chartType === ChartType.HEATMAP && selectedCorrelationColumns.length < 2) ||
+        ((chartType === ChartType.WORDCLOUD || chartType === ChartType.PIE) && !selectedXColumn)) {
         return (
             <div className="absolute inset-0 flex items-center justify-center p-12 text-center animate-slide-up">
                 <div>

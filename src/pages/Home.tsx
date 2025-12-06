@@ -1,6 +1,33 @@
+import { useNavigate } from 'react-router-dom';
 import FileUploader from '../components/FileUploader';
+import { SAMPLE_DATASETS, loadSampleData } from '../utils/sampleData';
+import { useDataStore } from '../store/dataStore';
+import { useState } from 'react';
 
 const Home = () => {
+    const navigate = useNavigate();
+    const { setData } = useDataStore();
+    const [loadingDataset, setLoadingDataset] = useState<string | null>(null);
+
+    const handleLoadSample = async (datasetId: string) => {
+        setLoadingDataset(datasetId);
+        try {
+            const { data, columns } = await loadSampleData(datasetId);
+            const dataset = SAMPLE_DATASETS.find(d => d.id === datasetId);
+            setData(data, columns, {
+                name: dataset?.fileName || 'sample.csv',
+                size: data.length * columns.length * 10, // Approximate
+                type: 'text/csv'
+            });
+            navigate('/workspace');
+        } catch (error) {
+            console.error('Failed to load sample data:', error);
+            alert('Failed to load sample data. Please try again.');
+        } finally {
+            setLoadingDataset(null);
+        }
+    };
+
     return (
         <div className="space-y-12">
             {/* Hero Section */}
@@ -64,7 +91,7 @@ const Home = () => {
                     </div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Create Charts</h3>
                     <p className="text-slate-500 dark:text-dark-400 text-sm">
-                        Choose from 5 chart types: Scatter, Line, Bar, Histogram, and Box Plot.
+                        Choose from 8 chart types: Scatter, Line, Bar, Histogram, Box Plot, Pie, Word Cloud, and Heatmap.
                     </p>
                 </div>
 
@@ -78,6 +105,84 @@ const Home = () => {
                     <p className="text-slate-500 dark:text-dark-400 text-sm">
                         Download your visualizations as high-quality images for reports and presentations.
                     </p>
+                </div>
+            </div>
+
+            {/* Sample Datasets Section */}
+            <div className="space-y-6">
+                <div className="text-center">
+                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                        Try Sample Datasets
+                    </h2>
+                    <p className="text-slate-600 dark:text-dark-300">
+                        No data? No problem! Start exploring with our curated sample datasets
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {SAMPLE_DATASETS.map((dataset) => (
+                        <div
+                            key={dataset.id}
+                            className="bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-200 dark:border-dark-700 hover:border-primary-500/50 transition-all group"
+                        >
+                            <div className="text-4xl mb-4">{dataset.icon}</div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                                {dataset.name}
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-dark-300 mb-4 min-h-[3rem]">
+                                {dataset.description}
+                            </p>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {dataset.suggestedCharts.map((chart) => (
+                                    <span
+                                        key={chart}
+                                        className="text-xs px-2 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full"
+                                    >
+                                        {chart}
+                                    </span>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => handleLoadSample(dataset.id)}
+                                disabled={loadingDataset === dataset.id}
+                                className={`w-full py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2
+                                    ${loadingDataset === dataset.id
+                                        ? 'bg-slate-100 dark:bg-dark-700 text-slate-400 dark:text-dark-500 cursor-not-allowed'
+                                        : 'bg-primary-500 hover:bg-primary-600 text-white shadow-lg hover:shadow-primary-500/30 group-hover:scale-105'
+                                    }
+                                `}
+                            >
+                                {loadingDataset === dataset.id ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Loading...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        Try it now
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200 dark:border-dark-700"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-slate-50 dark:bg-dark-900 text-slate-500 dark:text-dark-400">
+                        Or upload your own data
+                    </span>
                 </div>
             </div>
 

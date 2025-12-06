@@ -1,0 +1,51 @@
+Date,Product,Category,Region,Sales,Quantity,Customer_Age,Gender
+2024-01-15,Laptop,Electronics,North,1299.99,1,34,M
+2024-01-16,Mouse,Electronics,South,29.99,3,28,F
+2024-01-17,Desk Chair,Furniture,East,249.99,1,45,M
+2024-01-18,Monitor,Electronics,West,399.99,2,31,M
+2024-01-19,Notebook,Stationery,North,12.99,5,22,F
+2024-01-20,Keyboard,Electronics,South,79.99,2,29,M
+2024-01-21,Desk Lamp,Furniture,East,45.99,1,38,F
+2024-01-22,Laptop,Electronics,North,1299.99,1,41,M
+2024-01-23,Pen Set,Stationery,West,8.99,10,25,F
+2024-01-24,Office Chair,Furniture,South,349.99,1,52,M
+2024-01-25,Headphones,Electronics,East,149.99,2,27,F
+2024-01-26,Desk,Furniture,North,599.99,1,44,M
+2024-01-27,Mouse Pad,Electronics,West,15.99,4,23,M
+2024-01-28,Monitor,Electronics,South,399.99,1,36,F
+2024-01-29,Stapler,Stationery,East,9.99,3,31,F
+2024-01-30,Laptop,Electronics,North,1299.99,2,39,M
+2024-02-01,Webcam,Electronics,West,89.99,1,33,M
+2024-02-02,Desk Chair,Furniture,South,249.99,2,47,F
+2024-02-03,Notebook,Stationery,East,12.99,8,24,F
+2024-02-04,Keyboard,Electronics,North,79.99,1,30,M
+2024-02-05,Monitor,Electronics,West,399.99,1,35,F
+2024-02-06,Pen Set,Stationery,South,8.99,6,26,M
+2024-02-07,Laptop,Electronics,East,1299.99,1,42,M
+2024-02-08,Mouse,Electronics,North,29.99,5,29,F
+2024-02-09,Desk Lamp,Furniture,West,45.99,2,37,M
+2024-02-10,Office Chair,Furniture,South,349.99,1,49,F
+2024-02-11,Headphones,Electronics,East,149.99,3,28,M
+2024-02-12,Desk,Furniture,North,599.99,1,51,M
+2024-02-13,Mouse Pad,Electronics,West,15.99,7,22,F
+2024-02-14,Monitor,Electronics,South,399.99,2,34,M
+2024-02-15,Stapler,Stationery,East,9.99,4,32,F
+2024-02-16,Laptop,Electronics,North,1299.99,1,40,M
+2024-02-17,Webcam,Electronics,West,89.99,2,31,F
+2024-02-18,Desk Chair,Furniture,South,249.99,1,46,M
+2024-02-19,Notebook,Stationery,East,12.99,12,23,F
+2024-02-20,Keyboard,Electronics,North,79.99,3,28,M
+2024-03-01,Monitor,Electronics,West,399.99,1,36,F
+2024-03-02,Pen Set,Stationery,South,8.99,9,27,M
+2024-03-03,Laptop,Electronics,East,1299.99,2,43,M
+2024-03-04,Mouse,Electronics,North,29.99,4,30,F
+2024-03-05,Desk Lamp,Furniture,West,45.99,1,39,M
+2024-03-06,Office Chair,Furniture,South,349.99,2,50,F
+2024-03-07,Headphones,Electronics,East,149.99,1,29,M
+2024-03-08,Desk,Furniture,North,599.99,1,48,M
+2024-03-09,Mouse Pad,Electronics,West,15.99,6,24,F
+2024-03-10,Monitor,Electronics,South,399.99,1,35,M
+2024-03-11,Stapler,Stationery,East,9.99,5,33,F
+2024-03-12,Laptop,Electronics,North,1299.99,1,41,M
+2024-03-13,Webcam,Electronics,West,89.99,1,32,F
+2024-03-14,Desk Chair,Furniture,South,249.99,1,45,M

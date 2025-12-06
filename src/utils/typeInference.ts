@@ -18,6 +18,16 @@ export function inferColumnTypes(
 
         const type = inferType(sampleValues);
 
+        // Debug log for Date column
+        if (header.toLowerCase().includes('date')) {
+            console.log(`Column "${header}" type inference:`, {
+                sampleValues: sampleValues.slice(0, 3),
+                inferredType: type,
+                dateCount: sampleValues.filter(v => isDate(v)).length,
+                total: sampleValues.length
+            });
+        }
+
         return {
             name: header,
             type,
@@ -69,6 +79,18 @@ function isNumber(value: any): boolean {
     }
 
     if (typeof value === 'string') {
+        // 날짜 형식이면 숫자가 아님
+        const datePatterns = [
+            /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
+            /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
+            /^\d{2}-\d{2}-\d{4}/, // DD-MM-YYYY
+            /^\d{4}\/\d{2}\/\d{2}/, // YYYY/MM/DD
+        ];
+
+        if (datePatterns.some(pattern => pattern.test(value))) {
+            return false;
+        }
+
         // 콤마 제거 후 체크
         const cleaned = value.replace(/,/g, '');
         const num = parseFloat(cleaned);

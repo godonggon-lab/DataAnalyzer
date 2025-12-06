@@ -214,3 +214,67 @@ export const calculateCorrelationMatrix = (data: any[][], columns: string[], all
 
     return matrix;
 };
+
+/**
+ * 워드 클라우드를 위한 단어 빈도수 계산
+ * @param textData 텍스트 데이터 배열
+ * @returns { name: string, value: number }[]
+ */
+export const calculateWordFrequency = (textData: string[]): { name: string; value: number }[] => {
+    const wordCounts: { [key: string]: number } = {};
+    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']);
+
+    textData.forEach(text => {
+        if (!text) return;
+        // 간단한 토큰화: 공백 및 특수문자 기준 분리
+        const words = String(text).toLowerCase().split(/[\s,.;:!?()\[\]{}'"]+/);
+
+        words.forEach(word => {
+            if (word.length > 2 && !stopWords.has(word) && isNaN(Number(word))) {
+                wordCounts[word] = (wordCounts[word] || 0) + 1;
+            }
+        });
+    });
+
+    return Object.entries(wordCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 100); // 상위 100개 단어만 반환
+};
+
+/**
+ * 파이 차트 데이터 집계 (카테고리별 빈도 또는 값 합계)
+ * @param categoryData 카테고리 데이터 배열
+ * @param valueData 값 데이터 배열 (선택사항, 없으면 카운트)
+ * @returns { name: string, value: number }[]
+ */
+export const aggregateDataForPie = (categoryData: any[], valueData?: number[]): { name: string; value: number }[] => {
+    const aggregation: { [key: string]: number } = {};
+
+    categoryData.forEach((cat, i) => {
+        const key = String(cat);
+        if (valueData) {
+            const val = valueData[i];
+            if (!isNaN(val)) {
+                aggregation[key] = (aggregation[key] || 0) + val;
+            }
+        } else {
+            aggregation[key] = (aggregation[key] || 0) + 1;
+        }
+    });
+
+    const sortedData = Object.entries(aggregation)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+
+    // Optimization: Limit to top 20 slices, group rest as "Other"
+    if (sortedData.length > 20) {
+        const top20 = sortedData.slice(0, 20);
+        const others = sortedData.slice(20);
+        const otherValue = others.reduce((sum, item) => sum + item.value, 0);
+
+        return [...top20, { name: 'Other', value: otherValue }];
+    }
+
+    return sortedData;
+};

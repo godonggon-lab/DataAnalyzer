@@ -148,7 +148,7 @@ const AIAnalysisPanel = () => {
                                     {children}
                                 </em>
                             ),
-                            code: ({ inline, children, ...props }: any) =>
+                            code: ({ inline, children }: any) =>
                                 inline ? (
                                     <code className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm font-mono">
                                         {children}

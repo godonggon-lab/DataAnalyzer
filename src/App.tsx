@@ -7,6 +7,7 @@ import Contact from './pages/Contact';
 import BlogList from './pages/BlogList';
 import ExcelDataAnalysisGuide from './pages/blog/excel-data-analysis-guide';
 import CorrelationAnalysis from './pages/blog/CorrelationAnalysis';
+import AIDataAnalysis from './pages/blog/AIDataAnalysis';
 import TutorialList from './pages/TutorialList';
 import GettingStarted from './pages/tutorials/GettingStarted';
 import AdvancedFeatures from './pages/tutorials/AdvancedFeatures';
@@ -29,6 +30,7 @@ function App() {
                     <Route path="blog" element={<BlogList />} />
                     <Route path="blog/excel-data-analysis-guide" element={<ExcelDataAnalysisGuide />} />
                     <Route path="blog/correlation-analysis" element={<CorrelationAnalysis />} />
+                    <Route path="blog/ai-data-analysis" element={<AIDataAnalysis />} />
                     <Route path="tutorials" element={<TutorialList />} />
                     <Route path="tutorials/getting-started" element={<GettingStarted />} />
                     <Route path="tutorials/advanced-features" element={<AdvancedFeatures />} />
@@ -45,4 +47,3 @@ function App() {
 }
 
 export default App;
-

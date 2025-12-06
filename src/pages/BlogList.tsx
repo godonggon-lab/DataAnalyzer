@@ -11,6 +11,14 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
     {
+        id: 'ai-data-analysis',
+        title: 'Introducing AI Data Analyst: Powered by Gemini 2.0 Flash',
+        description: 'Discover hidden patterns and insights instantly with our new AI-powered analysis feature.',
+        category: 'New Feature',
+        date: '2025-12-06',
+        readTime: '5 min',
+    },
+    {
         id: 'correlation-analysis',
         title: 'Understanding Correlation Analysis: Uncovering Hidden Relationships',
         description: 'Learn how to use correlation matrices to find patterns in your data and avoid common pitfalls.',

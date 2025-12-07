@@ -651,4 +651,4 @@ const ColumnSelector: React.FC = () => {
     );
 };
 
-export default ColumnSelector;
+export default React.memo(ColumnSelector);

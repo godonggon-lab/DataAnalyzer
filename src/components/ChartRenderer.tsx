@@ -992,4 +992,4 @@ const ChartRenderer: React.FC = () => {
     );
 };
 
-export default ChartRenderer;
+export default React.memo(ChartRenderer);

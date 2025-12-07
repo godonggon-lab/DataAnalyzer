@@ -1,12 +1,50 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
+import * as echarts from 'echarts/core';
+import {
+    ScatterChart,
+    LineChart,
+    BarChart,
+    BoxplotChart,
+    HeatmapChart,
+    PieChart,
+} from 'echarts/charts';
+import {
+    GridComponent,
+    TooltipComponent,
+    TitleComponent,
+    LegendComponent,
+    DataZoomComponent,
+    ToolboxComponent,
+    VisualMapComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import 'echarts-wordcloud';
+
 import { useDataStore } from '../store/dataStore';
 import { useThemeStore } from '../store/themeStore';
 import { ChartType, ChartDataPoint } from '../types';
 import { downsampleData } from '../utils/dataSampling';
 import { toNumber } from '../utils/typeInference';
 import { calculateHistogram, groupDataForBoxPlot, calculateBoxPlotStats, calculateCorrelationMatrix, aggregateDataForPie, calculateWordFrequency } from '../utils/statistics';
+
+// Register ECharts components
+echarts.use([
+    ScatterChart,
+    LineChart,
+    BarChart,
+    BoxplotChart,
+    HeatmapChart,
+    PieChart,
+    GridComponent,
+    TooltipComponent,
+    TitleComponent,
+    LegendComponent,
+    DataZoomComponent,
+    ToolboxComponent,
+    VisualMapComponent,
+    CanvasRenderer,
+]);
 
 // 시리즈 색상 팔레트
 const seriesColors = [

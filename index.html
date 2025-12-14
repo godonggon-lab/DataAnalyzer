@@ -12,6 +12,18 @@
   <meta name="google-adsense-account" content="ca-pub-1217863446029904">
   <title>DataAnalyzer - Large-scale Data Visualization Tool</title>
 
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX', {
+      page_path: window.location.pathname,
+      send_page_view: false // SPA에서 수동으로 페이지뷰 전송
+    });
+  </script>
+
   <!-- Google AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1217863446029904"
     crossorigin="anonymous"></script>

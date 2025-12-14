@@ -342,8 +342,8 @@ const ChartRenderer: React.FC = () => {
 
         const baseOption = {
             // 대용량 데이터 렌더링 최적화
-            progressive: 15000,
-            progressiveThreshold: 3000,
+            progressive: 5000,  // 15000에서 5000으로 줄여서 더 부드럽게
+            progressiveThreshold: 2000,  // 3000에서 2000으로 줄임
             backgroundColor: 'transparent',
             grid: {
                 left: '80px',  // Y축 레이블이 잘 보이도록 고정 너비 사용
@@ -483,14 +483,44 @@ const ChartRenderer: React.FC = () => {
                     splitLine: { show: false }
                 }
             ],
+            // 개선된 dataZoom 설정
             dataZoom: [
-                { type: 'inside', xAxisIndex: 0, filterMode: 'empty' },
-                { type: 'slider', xAxisIndex: 0, filterMode: 'empty', height: 20, bottom: 10, borderColor: themeColors.border },
-                { type: 'inside', yAxisIndex: [0, 1], filterMode: 'empty' }, // Zoom both axes
-                { type: 'slider', yAxisIndex: 0, filterMode: 'empty', left: 10, width: 20, borderColor: themeColors.border }, // Left axis slider
-                { type: 'slider', yAxisIndex: 1, filterMode: 'empty', right: 10, width: 20, borderColor: themeColors.border } // Right axis slider
+                // X축 줌 (내부 마우스 휠)
+                { 
+                    type: 'inside', 
+                    xAxisIndex: 0, 
+                    filterMode: 'weakFilter',  // 'empty'에서 'weakFilter'로 변경
+                    zoomOnMouseWheel: true,
+                    moveOnMouseMove: true,
+                    moveOnMouseWheel: false,
+                },
+                // X축 줌 (하단 슬라이더)
+                { 
+                    type: 'slider', 
+                    xAxisIndex: 0, 
+                    filterMode: 'weakFilter',  // 'empty'에서 'weakFilter'로 변경
+                    height: 20, 
+                    bottom: 10, 
+                    borderColor: themeColors.border,
+                    handleSize: '80%',
+                    handleStyle: {
+                        color: '#38bdf8',
+                    },
+                    moveHandleSize: 5,
+                },
+                // Y축 줌 (내부 마우스 휠) - 양쪽 Y축 모두 적용
+                { 
+                    type: 'inside', 
+                    yAxisIndex: [0, 1],  // 양쪽 Y축 모두
+                    filterMode: 'weakFilter',
+                    zoomOnMouseWheel: false,  // 마우스 휠은 X축만
+                    moveOnMouseMove: false,
+                    disabled: false,  // Shift + 마우스 휠로 Y축 줌
+                },
             ],
-            animation: false,
+            animation: true,  // false에서 true로 변경하여 부드러운 전환
+            animationDuration: 300,  // 애니메이션 시간 짧게
+            animationEasing: 'cubicOut',
         };
 
         // 히스토그램 옵션
@@ -949,8 +979,26 @@ const ChartRenderer: React.FC = () => {
                         ref={chartRef}
                         option={chartOption}
                         style={{ height: '100%', width: '100%' }}
-                        opts={{ renderer: 'canvas' }}
+                        opts={{ 
+                            renderer: 'canvas',
+                            locale: 'EN'
+                        }}
                         notMerge={true}
+                        lazyUpdate={true}
+                        onEvents={{
+                            dataZoom: () => {
+                                // dataZoom 이벤트 발생 시 차트 강제 갱신
+                                if (chartRef.current) {
+                                    const instance = chartRef.current.getEchartsInstance();
+                                    if (instance && !instance.isDisposed()) {
+                                        // 약간의 지연 후 resize로 강제 리렌더링
+                                        setTimeout(() => {
+                                            instance.resize();
+                                        }, 100);
+                                    }
+                                }
+                            }
+                        }}
                     />
                 )}
             </div>

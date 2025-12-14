@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { trackPageView } from './utils/analytics';
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import Workspace from './pages/Workspace';
@@ -38,9 +39,22 @@ const PageLoader = () => (
     </div>
 );
 
+// Analytics tracker component
+function AnalyticsTracker() {
+    const location = useLocation();
+
+    useEffect(() => {
+        // Track page view on route change
+        trackPageView(location.pathname + location.search, document.title);
+    }, [location]);
+
+    return null;
+}
+
 function App() {
     return (
         <BrowserRouter>
+            <AnalyticsTracker />
             <Routes>
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Home />} />

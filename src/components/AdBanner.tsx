@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { trackAdView, trackAdClick } from '../utils/analytics';
 
 interface AdBannerProps {
     dataAdSlot: string;
@@ -11,21 +12,39 @@ const AdBanner: React.FC<AdBannerProps> = ({
     dataAdFormat = 'auto',
     className = ''
 }) => {
+    const adRef = useRef<HTMLDivElement>(null);
+    const adTracked = useRef(false);
+
     useEffect(() => {
         try {
             // @ts-ignore
             (window.adsbygoogle = window.adsbygoogle || []).push({});
+            
+            // Track ad view (only once per mount)
+            if (!adTracked.current) {
+                trackAdView(dataAdSlot);
+                adTracked.current = true;
+            }
         } catch (e) {
             console.error('AdSense error:', e);
         }
-    }, []);
+    }, [dataAdSlot]);
+
+    // Track ad click
+    const handleAdClick = () => {
+        trackAdClick(dataAdSlot);
+    };
 
     return (
-        <div className={`adsense-container ${className}`}>
+        <div 
+            ref={adRef}
+            className={`adsense-container ${className}`}
+            onClick={handleAdClick}
+        >
             <ins
                 className="adsbygoogle"
                 style={{ display: 'block' }}
-                data-ad-client="ca-pub-1217863446029904" // AdSense 승인 후 여기에 본인의 Publisher ID 입력
+                data-ad-client="ca-pub-1217863446029904"
                 data-ad-slot={dataAdSlot}
                 data-ad-format={dataAdFormat}
                 data-full-width-responsive="true"

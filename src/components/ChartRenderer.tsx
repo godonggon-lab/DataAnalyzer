@@ -82,6 +82,9 @@ const ChartRenderer: React.FC = () => {
         boxPlotMaxCategories,
         yAxisAssignment,
         selectedCorrelationColumns,
+        annotations,
+        addAnnotation,
+        // removeAnnotation, // Step 4에서 사용 예정
     } = useDataStore();
 
     const [chartData, setChartData] = useState<any>(null);
@@ -869,9 +872,37 @@ const ChartRenderer: React.FC = () => {
 
         return {
             ...baseOption,
-            series: seriesList,
+            series: [...seriesList, 
+                // Annotations를 별도의 scatter 시리즈로 추가
+                ...(annotations.length > 0 && chartData.type === 'basic' ? [{
+                    name: 'Annotations',
+                    type: 'scatter',
+                    data: annotations.map(ann => [ann.x, ann.y]),
+                    symbol: 'pin',
+                    symbolSize: 30,
+                    itemStyle: {
+                        color: '#ef4444', // 빨간색
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                    },
+                    label: {
+                        show: true,
+                        formatter: (params: any) => {
+                            const annotation = annotations[params.dataIndex];
+                            return annotation?.label || '';
+                        },
+                        position: 'top',
+                        color: '#fff',
+                        backgroundColor: '#ef4444',
+                        padding: [4, 8],
+                        borderRadius: 4,
+                        fontSize: 10,
+                    },
+                    zlevel: 100, // 맨 위에 표시
+                }] : [])
+            ],
         };
-    }, [chartData, chartType, selectedXColumn, selectedYColumns, yAxisAssignment, themeColors, theme]);
+    }, [chartData, chartType, selectedXColumn, selectedYColumns, yAxisAssignment, themeColors, theme, annotations]);
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -995,6 +1026,33 @@ const ChartRenderer: React.FC = () => {
                                         setTimeout(() => {
                                             instance.resize();
                                         }, 100);
+                                    }
+                                }
+                            },
+                            click: (params: any) => {
+                                // Ctrl/Cmd + 클릭 시 주석 추가
+                                if (params.event?.event?.ctrlKey || params.event?.event?.metaKey) {
+                                    // 차트 타입에 따라 좌표 추출
+                                    let x, y;
+                                    
+                                    if (chartData.type === 'basic') {
+                                        // Scatter, Line, Bar 차트
+                                        if (params.componentType === 'series') {
+                                            x = params.value[0];
+                                            y = params.value[1];
+                                        }
+                                    }
+                                    
+                                    if (x !== undefined && y !== undefined) {
+                                        addAnnotation({
+                                            x,
+                                            y,
+                                            color: '#ef4444', // 빨간색
+                                            label: `Point ${annotations.length + 1}`
+                                        });
+                                        
+                                        // 피드백 제공
+                                        console.log(`Annotation added at (${x}, ${y})`);
                                     }
                                 }
                             }

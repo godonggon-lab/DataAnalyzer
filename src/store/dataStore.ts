@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ColumnInfo, ChartType, FileInfo } from '../types';
+import { ColumnInfo, ChartType, FileInfo, ChartAnnotation } from '../types';
 import { Transformation, processData } from '../utils/transformations';
 
 interface DataState {
@@ -28,6 +28,9 @@ interface DataState {
     boxPlotMaxCategories: number;
     yAxisAssignment: { [columnName: string]: 0 | 1 }; // 0 = left, 1 = right
 
+    // 차트 주석 (수동 마커)
+    annotations: ChartAnnotation[];
+
     // 액션
     setData: (data: any[][], columns: ColumnInfo[], fileInfo: FileInfo) => void;
     initData: (columns: ColumnInfo[], fileInfo: FileInfo) => void;
@@ -52,6 +55,12 @@ interface DataState {
     removeTransformation: (id: string) => void;
     resetTransformations: () => void;
 
+    // 주석 액션
+    addAnnotation: (annotation: Omit<ChartAnnotation, 'id' | 'timestamp'>) => void;
+    removeAnnotation: (id: string) => void;
+    clearAnnotations: () => void;
+    updateAnnotation: (id: string, updates: Partial<ChartAnnotation>) => void;
+
     reset: () => void;
 }
 
@@ -74,6 +83,7 @@ export const useDataStore = create<DataState>((set) => ({
     binCount: 20,
     boxPlotMaxCategories: 5,
     yAxisAssignment: {},
+    annotations: [], // 주석 초기 상태
 
     // 액션 구현
     setData: (data, columns, fileInfo) => set({
@@ -195,6 +205,24 @@ export const useDataStore = create<DataState>((set) => ({
         processedColumns: state.columns,
     })),
 
+    addAnnotation: (annotation) => set((state) => ({
+        annotations: [...state.annotations, { 
+            ...annotation, 
+            id: `ann-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, 
+            timestamp: Date.now() 
+        }]
+    })),
+
+    removeAnnotation: (id) => set((state) => ({
+        annotations: state.annotations.filter(a => a.id !== id)
+    })),
+
+    clearAnnotations: () => set({ annotations: [] }),
+
+    updateAnnotation: (id, updates) => set((state) => ({
+        annotations: state.annotations.map(a => a.id === id ? { ...a, ...updates } : a)
+    })),
+
     reset: () => set({
         rawData: [],
         columns: [],
@@ -213,5 +241,6 @@ export const useDataStore = create<DataState>((set) => ({
         binCount: 20,
         boxPlotMaxCategories: 5,
         yAxisAssignment: {},
+        annotations: [],
     }),
 }));

@@ -50,6 +50,16 @@ export interface ChartDataPoint {
     y: any;
 }
 
+// 수동 마커(주석) 타입
+export interface ChartAnnotation {
+    id: string;
+    x: number;
+    y: number;
+    color?: string;
+    label?: string;
+    timestamp: number;
+}
+
 // 파일 정보
 export interface FileInfo {
     name: string;

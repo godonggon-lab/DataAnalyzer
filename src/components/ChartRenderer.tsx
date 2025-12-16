@@ -84,7 +84,8 @@ const ChartRenderer: React.FC = () => {
         selectedCorrelationColumns,
         annotations,
         addAnnotation,
-        // removeAnnotation, // Step 4에서 사용 예정
+        removeAnnotation,
+        clearAnnotations,
     } = useDataStore();
 
     const [chartData, setChartData] = useState<any>(null);
@@ -1092,6 +1093,133 @@ const ChartRenderer: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Annotations Panel */}
+            {annotations.length > 0 && chartData?.type === 'basic' && (
+                <div className="mt-4 p-4 bg-white/80 dark:bg-dark-800/80 backdrop-blur-sm rounded-xl border border-slate-200 dark:border-dark-700 shadow-sm animate-slide-up">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-slate-900 dark:text-white flex items-center">
+                            <svg className="w-5 h-5 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Annotations ({annotations.length})
+                        </h4>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={() => {
+                                    // Export annotations to JSON
+                                    const dataStr = JSON.stringify(annotations, null, 2);
+                                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                                    const url = URL.createObjectURL(dataBlob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `annotations-${Date.now()}.json`;
+                                    link.click();
+                                    URL.revokeObjectURL(url);
+                                }}
+                                className="px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                title="Export annotations to JSON"
+                            >
+                                <svg className="w-4 h-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Export
+                            </button>
+                            <button
+                                onClick={clearAnnotations}
+                                className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {annotations.map((ann, index) => (
+                            <div
+                                key={ann.id}
+                                className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                            >
+                                <div className="flex items-center space-x-3 flex-1">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                            {ann.label || `Point ${index + 1}`}
+                                        </div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                                            x: {typeof ann.x === 'number' ? ann.x.toFixed(2) : ann.x}, 
+                                            y: {typeof ann.y === 'number' ? ann.y.toFixed(2) : ann.y}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => removeAnnotation(ann.id)}
+                                    className="ml-2 p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex-shrink-0"
+                                    title="Delete annotation"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            💡 Tip: Hold <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">Ctrl</kbd> (or <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">Cmd</kbd>) and click on the chart to add annotations
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Annotations Button - Show even when no annotations */}
+            {chartData?.type === 'basic' && (
+                <div className="mt-4">
+                    <label className="inline-flex items-center px-4 py-2 bg-white dark:bg-dark-800 border border-slate-200 dark:border-dark-700 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-dark-700 transition-colors cursor-pointer">
+                        <svg className="w-4 h-4 mr-2 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Import Annotations</span>
+                        <input
+                            type="file"
+                            accept=".json"
+                            className="hidden"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                        try {
+                                            const imported = JSON.parse(event.target?.result as string);
+                                            if (Array.isArray(imported)) {
+                                                // Clear existing and add imported annotations
+                                                clearAnnotations();
+                                                imported.forEach((ann: any) => {
+                                                    if (ann.x !== undefined && ann.y !== undefined) {
+                                                        addAnnotation({
+                                                            x: ann.x,
+                                                            y: ann.y,
+                                                            color: ann.color || '#ef4444',
+                                                            label: ann.label
+                                                        });
+                                                    }
+                                                });
+                                                console.log(`Imported ${imported.length} annotations`);
+                                            }
+                                        } catch (error) {
+                                            console.error('Failed to import annotations:', error);
+                                            alert('Failed to import annotations. Please check the file format.');
+                                        }
+                                    };
+                                    reader.readAsText(file);
+                                }
+                                // Reset input
+                                e.target.value = '';
+                            }}
+                        />
+                    </label>
                 </div>
             )}
         </div>
